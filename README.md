@@ -18,7 +18,7 @@ The page reads `~/.grok/sessions` on the computer where it runs. Nothing is uplo
 - The lock icon keeps one session, or every session in a folder, from being moved or deleted until you unlock it.
 - A session that is still open is marked **Session Active**. It cannot be moved or deleted while it is open.
 
-![Move a session into another project folder](docs/move.png)
+<img width="2298" height="1228" alt="Mask group" src="https://github.com/user-attachments/assets/839300ae-1793-41b9-bf78-79187f5c92a5" />
 
 ## Run
 
