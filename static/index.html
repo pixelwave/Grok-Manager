@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grok Manager</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c0c0e'/%3E%3Cg transform='translate(4 4)' fill='%23ff4fa3'%3E%3Cpath d='M9.27 15.29l7.978-5.897c.391-.29.95-.177 1.137.272.98 2.369.542 5.215-1.41 7.169-1.951 1.954-4.667 2.382-7.149 1.406l-2.711 1.257c3.889 2.661 8.611 2.003 11.562-.953 2.341-2.344 3.066-5.539 2.388-8.42l.006.007c-.983-4.232.242-5.924 2.75-9.383.06-.082.12-.164.179-.248l-3.301 3.305v-.01L9.267 15.292M7.623 16.723c-2.792-2.67-2.31-6.801.071-9.184 1.761-1.763 4.647-2.483 7.166-1.425l2.705-1.25a7.808 7.808 0 00-1.829-1A8.975 8.975 0 005.984 5.83c-2.533 2.536-3.33 6.436-1.962 9.764 1.022 2.487-.653 4.246-2.34 6.022-.599.63-1.199 1.259-1.682 1.925l7.62-6.815'/%3E%3C/g%3E%3C/svg%3E" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0c0c0e;
+        --panel: #16161a;
+        --panel-2: #1c1c22;
+        --line: #2c2c32;
+        --fg: #f4f4f5;
+        --muted: #9b9ba4;
+        --accent: #ff4fa3;
+        --accent-dim: rgba(255, 79, 163, 0.14);
+        --danger: #ff6b8a;
+        --ok: #b6f2c8;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        background:
+          radial-gradient(900px 420px at 8% -10%, rgba(255, 79, 163, 0.16), transparent 55%),
+          var(--bg);
+        color: var(--fg);
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        width: min(980px, calc(100% - 2.5rem));
+        margin: 0 auto;
+        padding: 3.2rem 0 5rem;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 1.5rem;
+        margin-bottom: 1.75rem;
+      }
+      .brand { display: flex; align-items: center; gap: 0.55rem; }
+      .logo {
+        display: inline-flex;
+        width: 1.45rem;
+        height: 1.45rem;
+        color: var(--accent);
+        flex: none;
+      }
+      .logo svg { width: 100%; height: 100%; display: block; }
+      .brand h1 {
+        font-size: clamp(1.8rem, 3vw, 2.4rem);
+        font-weight: 560;
+        letter-spacing: -0.03em;
+        margin: 0;
+      }
+      .brand .grok { color: var(--accent); }
+      .mark {
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.2rem 0.5rem 0.15rem;
+      }
+      .lede {
+        margin: 0.45rem 0 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      .lede a { color: var(--fg); }
+      .tools { display: flex; flex-direction: column; align-items: flex-end; gap: 0.55rem; }
+      .count { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+      input[type="search"] {
+        width: min(280px, 70vw);
+        background: var(--panel);
+        color: var(--fg);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.62rem 0.95rem;
+        font: inherit;
+        font-size: 0.92rem;
+        outline: none;
+      }
+      input[type="search"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+      .error {
+        background: rgba(255, 107, 138, 0.1);
+        color: var(--danger);
+        border: 1px solid rgba(255, 107, 138, 0.35);
+        border-radius: 12px;
+        padding: 0.75rem 0.9rem;
+        margin: 0 0 1rem;
+      }
+      .empty { color: var(--muted); padding: 2rem 0; }
+      section { margin: 0 0 1.35rem; }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+        padding: 0 0.15rem 0.45rem;
+      }
+      .section-head h2 {
+        margin: 0;
+        font-size: 1.02rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      button.path {
+        display: block;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 0.75rem;
+        text-align: left;
+        cursor: pointer;
+      }
+      button.path:hover, button.path:focus-visible { color: var(--fg); }
+      .n {
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
+      }
+      ul.rows {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      li.row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
+        gap: 0.8rem 1rem;
+        align-items: center;
+        padding: 0.85rem 1rem;
+        border-top: 1px solid var(--line);
+      }
+      .check {
+        width: 1.05rem;
+        height: 1.05rem;
+        margin: 0;
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+      .check:disabled { cursor: not-allowed; }
+      .head-main { display: flex; align-items: flex-start; gap: 0.7rem; min-width: 0; }
+      .head-actions { display: flex; align-items: center; gap: 0.55rem; }
+      button.lock {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        padding: 0;
+        cursor: pointer;
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+      }
+      button.lock svg { width: 1rem; height: 1rem; }
+      button.lock[aria-pressed="true"] {
+        color: var(--accent);
+        border-color: rgba(255, 79, 163, 0.7);
+      }
+      button.lock:disabled { opacity: 0.45; cursor: wait; }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 0.4rem;
+        color: var(--accent);
+        vertical-align: -0.15em;
+      }
+      .pill svg { width: 0.95rem; height: 0.95rem; }
+      .selection {
+        position: fixed;
+        left: 50%;
+        bottom: 1.25rem;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        width: min(520px, calc(100% - 1.5rem));
+        padding: 0.7rem 0.8rem 0.7rem 1rem;
+        background: #121216;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45);
+      }
+      .selection[hidden] { display: none; }
+      .selection .picked {
+        flex: 1;
+        font-size: 0.9rem;
+        font-variant-numeric: tabular-nums;
+      }
+      .dialog ul.names {
+        list-style: none;
+        margin: 0.8rem 0 0;
+        padding: 0;
+        max-height: 220px;
+        overflow: auto;
+        border-top: 1px solid var(--line);
+      }
+      .dialog ul.names li {
+        padding: 0.45rem 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.92rem;
+      }
+      .dialog ul.names .sid {
+        display: block;
+        margin-top: 0.15rem;
+        color: var(--muted);
+        font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 0.72rem;
+      }
+      li.row:first-child { border-top: 0; }
+      li.row:hover { background: var(--panel-2); }
+      .title {
+        font-size: 0.98rem;
+        letter-spacing: -0.01em;
+        min-width: 0;
+      }
+      .meta {
+        display: flex;
+        gap: 0.7rem;
+        align-items: center;
+        margin-top: 0.22rem;
+        min-width: 0;
+      }
+      button.id {
+        font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 0.75rem;
+        color: var(--muted);
+        background: transparent;
+        border: 0;
+        padding: 0;
+        text-align: left;
+        cursor: pointer;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      button.id:hover, button.id:focus-visible { color: var(--fg); }
+      .model { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+      .when, .live {
+        font-size: 0.82rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .live { color: var(--accent); }
+      button.danger, button.ghost {
+        font: inherit;
+        font-size: 0.82rem;
+        border-radius: 999px;
+        padding: 0.38rem 0.75rem;
+        cursor: pointer;
+      }
+      button.danger {
+        color: var(--fg);
+        background: transparent;
+        border: 1px solid var(--line);
+      }
+      button.danger:hover { border-color: var(--danger); color: var(--danger); }
+      button.move {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        padding: 0;
+        cursor: pointer;
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+      }
+      button.move svg { width: 1rem; height: 1rem; }
+      button.danger:disabled, button.ghost:disabled, button.move:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .move-field {
+        display: block;
+        margin-top: 0.85rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .move-field select {
+        display: block;
+        width: 100%;
+        margin-top: 0.35rem;
+        background: #0c0c0e;
+        color: var(--fg);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.55rem 0.7rem;
+        font: inherit;
+        font-size: 0.92rem;
+      }
+      .dialog-back {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.62);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.2rem;
+      }
+      .dialog-back[hidden] { display: none; }
+      .dialog {
+        width: min(460px, 100%);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 1.25rem 1.25rem 1.1rem;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      }
+      .dialog h3 { margin: 0 0 0.4rem; font-size: 1.15rem; letter-spacing: -0.02em; }
+      .dialog p { margin: 0.35rem 0; color: var(--muted); line-height: 1.45; }
+      .dialog .who { color: var(--fg); }
+      .dialog code {
+        display: block;
+        margin-top: 0.7rem;
+        font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 0.78rem;
+        color: var(--accent);
+        word-break: break-all;
+      }
+      .actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.1rem; }
+      button.ghost {
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--line);
+      }
+      button.confirm {
+        font: inherit;
+        font-size: 0.85rem;
+        color: #1a0a12;
+        background: var(--accent);
+        border: 0;
+        border-radius: 999px;
+        padding: 0.48rem 0.9rem;
+        cursor: pointer;
+      }
+      button.confirm:disabled { opacity: 0.6; cursor: wait; }
+      @media (max-width: 720px) {
+        header { flex-direction: column; align-items: stretch; }
+        .tools { align-items: stretch; }
+        input[type="search"] { width: 100%; }
+        li.row { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+        .when, .live { grid-column: 2; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <div class="brand">
+            <span class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M9.27 15.29l7.978-5.897c.391-.29.95-.177 1.137.272.98 2.369.542 5.215-1.41 7.169-1.951 1.954-4.667 2.382-7.149 1.406l-2.711 1.257c3.889 2.661 8.611 2.003 11.562-.953 2.341-2.344 3.066-5.539 2.388-8.42l.006.007c-.983-4.232.242-5.924 2.75-9.383.06-.082.12-.164.179-.248l-3.301 3.305v-.01L9.267 15.292M7.623 16.723c-2.792-2.67-2.31-6.801.071-9.184 1.761-1.763 4.647-2.483 7.166-1.425l2.705-1.25a7.808 7.808 0 00-1.829-1A8.975 8.975 0 005.984 5.83c-2.533 2.536-3.33 6.436-1.962 9.764 1.022 2.487-.653 4.246-2.34 6.022-.599.63-1.199 1.259-1.682 1.925l7.62-6.815"/></svg></span>
+            <h1><span class="grok">Grok</span> Manager</h1>
+            <span class="mark">Build</span>
+          </div>
+          <p class="lede">Sessions on this machine, grouped by folder. <a id="hub" href="/">Hub</a></p>
+        </div>
+        <div class="tools">
+          <div class="count" id="count"></div>
+          <input id="filter" type="search" placeholder="Filter by name or session id" autocomplete="off" />
+        </div>
+      </header>
+      <div id="error" class="error" hidden></div>
+      <div id="list"></div>
+    </div>
+    <div class="selection" id="selection" hidden>
+      <span class="picked" id="selection-count"></span>
+      <button class="ghost" id="clear-selection" type="button">Clear</button>
+      <button class="danger" id="delete-selected" type="button">Delete selected</button>
+    </div>
+
+    <div class="dialog-back" id="dialog" hidden>
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+        <h3 id="dialog-title">Delete this session?</h3>
+        <p id="dialog-copy">This removes <span class="who" id="dialog-name"></span> from disk. It cannot be resumed.</p>
+        <code id="dialog-id"></code>
+        <ul class="names" id="dialog-list" hidden></ul>
+        <p id="dialog-move" hidden>Choose a project folder. The conversation stays with the session.</p>
+        <label class="move-field" id="move-field" hidden>
+          Folder
+          <select id="move-target"></select>
+        </label>
+        <div class="actions">
+          <button class="ghost" id="cancel" type="button">Cancel</button>
+          <button class="confirm" id="confirm" type="button">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const listEl = document.getElementById("list");
+      const filterEl = document.getElementById("filter");
+      const countEl = document.getElementById("count");
+      const errorEl = document.getElementById("error");
+      const dialogEl = document.getElementById("dialog");
+      const dialogTitle = document.getElementById("dialog-title");
+      const dialogCopy = document.getElementById("dialog-copy");
+      const dialogName = document.getElementById("dialog-name");
+      const dialogId = document.getElementById("dialog-id");
+      const dialogList = document.getElementById("dialog-list");
+      const dialogMove = document.getElementById("dialog-move");
+      const moveField = document.getElementById("move-field");
+      const moveTarget = document.getElementById("move-target");
+      const cancelBtn = document.getElementById("cancel");
+      const confirmBtn = document.getElementById("confirm");
+      const selectionEl = document.getElementById("selection");
+      const selectionCount = document.getElementById("selection-count");
+      const clearSelectionBtn = document.getElementById("clear-selection");
+      const deleteSelectedBtn = document.getElementById("delete-selected");
+      const hub = document.getElementById("hub");
+
+      hub.href = location.protocol + "//" + location.hostname + ":8000/";
+
+      let groups = [];
+      let pending = [];
+      let dialogMode = "delete";
+      const selected = new Set();
+
+      const FOLDER_INPUT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1"/><path d="M2 13h10"/><path d="m9 16 3-3-3-3"/></svg>';
+      const LOCK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+      const LOCK_OPEN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';
+
+      function lockIcon(open) {
+        const holder = document.createElement("span");
+        holder.innerHTML = open ? LOCK_OPEN_SVG : LOCK_SVG;
+        return holder.firstElementChild;
+      }
+
+      function folderInputIcon() {
+        const holder = document.createElement("span");
+        holder.innerHTML = FOLDER_INPUT_SVG;
+        return holder.firstElementChild;
+      }
+
+      function showError(message) {
+        if (!message) {
+          errorEl.hidden = true;
+          errorEl.textContent = "";
+          return;
+        }
+        errorEl.hidden = false;
+        errorEl.textContent = message;
+      }
+
+      function relTime(iso) {
+        const then = Date.parse(iso);
+        if (!Number.isFinite(then)) return "";
+        const seconds = Math.round((Date.now() - then) / 1000);
+        const steps = [
+          [60, "just now", 1],
+          [3600, "m", 60],
+          [86400, "h", 3600],
+          [86400 * 30, "d", 86400],
+          [86400 * 365, "mo", 86400 * 30],
+          [Infinity, "y", 86400 * 365],
+        ];
+        if (seconds < 60) return "just now";
+        for (const [limit, unit, size] of steps) {
+          if (Math.abs(seconds) < limit) {
+            const n = Math.round(seconds / size);
+            return n + unit + " ago";
+          }
+        }
+        return "";
+      }
+
+      function matches(session, query) {
+        if (!query) return true;
+        const hay = (session.title + " " + session.id).toLowerCase();
+        return hay.includes(query);
+      }
+
+      function render() {
+        for (const group of groups) {
+          for (const session of group.sessions) {
+            if (!deletable(session)) selected.delete(session.id);
+          }
+        }
+        const query = filterEl.value.trim().toLowerCase();
+        listEl.replaceChildren();
+        let shown = 0;
+        let total = 0;
+        for (const group of groups) {
+          total += group.sessions.length;
+          const sessions = group.sessions.filter((session) => matches(session, query));
+          if (sessions.length === 0) continue;
+          shown += sessions.length;
+          const section = document.createElement("section");
+          const head = document.createElement("div");
+          head.className = "section-head";
+          const titleWrap = document.createElement("div");
+          titleWrap.className = "head-main";
+          const selectable = sessions.filter((session) => deletable(session));
+          const headCheck = document.createElement("input");
+          headCheck.type = "checkbox";
+          headCheck.className = "check";
+          headCheck.disabled = selectable.length === 0;
+          headCheck.title = "Select sessions in this folder";
+          const picked = selectable.filter((session) => selected.has(session.id)).length;
+          headCheck.checked = selectable.length > 0 && picked === selectable.length;
+          headCheck.indeterminate = picked > 0 && picked < selectable.length;
+          headCheck.addEventListener("change", () => {
+            for (const session of selectable) {
+              if (headCheck.checked) selected.add(session.id);
+              else selected.delete(session.id);
+            }
+            for (const box of section.querySelectorAll("li.row input.check")) {
+              if (!box.disabled) box.checked = headCheck.checked;
+            }
+            headCheck.indeterminate = false;
+            updateBar();
+          });
+          const titles = document.createElement("div");
+          const h2 = document.createElement("h2");
+          h2.textContent = group.label;
+          if (group.locked) {
+            const pill = document.createElement("span");
+            pill.className = "pill";
+            pill.title = "Folder locked";
+            pill.append(lockIcon(false));
+            h2.append(pill);
+          }
+          const path = document.createElement("button");
+          path.type = "button";
+          path.className = "path";
+          path.textContent = group.cwd;
+          path.title = "Copy cd command";
+          path.addEventListener("click", () => copyText("cd " + group.cwd, path));
+          titles.append(h2, path);
+          titleWrap.append(headCheck, titles);
+          const actions = document.createElement("div");
+          actions.className = "head-actions";
+          const folderLock = document.createElement("button");
+          folderLock.type = "button";
+          folderLock.className = "lock";
+          folderLock.append(lockIcon(!group.locked));
+          folderLock.setAttribute("aria-pressed", group.locked ? "true" : "false");
+          folderLock.setAttribute("aria-label", group.locked ? "Unlock this folder" : "Lock this folder");
+          folderLock.title = group.locked ? "Unlock this folder" : "Lock this folder";
+          folderLock.addEventListener("click", () => setLock("folder", group.cwd, !group.locked, folderLock));
+          const n = document.createElement("div");
+          n.className = "n";
+          n.textContent = String(sessions.length);
+          actions.append(folderLock, n);
+          head.append(titleWrap, actions);
+          const ul = document.createElement("ul");
+          ul.className = "rows";
+          for (const session of sessions) ul.append(row(session, group));
+          section.append(head, ul);
+          listEl.append(section);
+        }
+        countEl.textContent = total === 1 ? "1 session" : total + " sessions";
+        if (shown === 0) {
+          const empty = document.createElement("p");
+          empty.className = "empty";
+          empty.textContent = total === 0 ? "No sessions on this machine." : "No sessions match that filter.";
+          listEl.append(empty);
+        }
+        updateBar();
+      }
+
+      function updateBar() {
+        const count = selected.size;
+        selectionEl.hidden = count === 0;
+        selectionCount.textContent = count === 1 ? "1 selected" : count + " selected";
+      }
+
+      function deletable(session) {
+        if (!session || session.live || session.locked) return false;
+        const group = groups.find((item) => item.sessions.some((row) => row.id === session.id));
+        return !(group && group.locked);
+      }
+
+      function row(session, group) {
+        const protectedSession = !!(session.locked || (group && group.locked));
+        const li = document.createElement("li");
+        li.className = "row";
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.className = "check";
+        box.checked = selected.has(session.id);
+        box.disabled = !!session.live || protectedSession;
+        box.title = session.live ? "Session Active" : protectedSession ? "Locked" : "Select session";
+        if (!box.disabled) {
+          box.addEventListener("change", () => {
+            if (box.checked) selected.add(session.id);
+            else selected.delete(session.id);
+            const section = li.closest("section");
+            const boxes = [...section.querySelectorAll("li.row input.check")].filter((item) => !item.disabled);
+            const head = section.querySelector(".head-main input.check");
+            const picked = boxes.filter((item) => item.checked).length;
+            head.checked = boxes.length > 0 && picked === boxes.length;
+            head.indeterminate = picked > 0 && picked < boxes.length;
+            updateBar();
+          });
+        }
+        const main = document.createElement("div");
+        const title = document.createElement("div");
+        title.className = "title";
+        title.textContent = session.title;
+        if (protectedSession) {
+          const pill = document.createElement("span");
+          pill.className = "pill";
+          pill.title = "Locked";
+          pill.append(lockIcon(false));
+          title.append(pill);
+        }
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const idBtn = document.createElement("button");
+        idBtn.type = "button";
+        idBtn.className = "id";
+        idBtn.textContent = session.id;
+        idBtn.title = "Copy grok --resume command";
+        idBtn.addEventListener("click", () => copyText("grok --resume " + session.id, idBtn));
+        meta.append(idBtn);
+        if (session.model) {
+          const model = document.createElement("span");
+          model.className = "model";
+          model.textContent = session.model;
+          meta.append(model);
+        }
+        main.append(title, meta);
+        const when = document.createElement("div");
+        if (session.live) {
+          when.className = "live";
+          when.textContent = "Session Active";
+        } else {
+          when.className = "when";
+          when.textContent = relTime(session.updatedAt);
+          if (session.updatedAt) when.title = session.updatedAt;
+        }
+        const lockBtn = document.createElement("button");
+        lockBtn.type = "button";
+        lockBtn.className = "lock";
+        lockBtn.append(lockIcon(!session.locked));
+        lockBtn.setAttribute("aria-pressed", session.locked ? "true" : "false");
+        lockBtn.setAttribute("aria-label", session.locked ? "Unlock this session" : "Lock this session");
+        lockBtn.title = session.locked ? "Unlock this session" : "Lock this session";
+        lockBtn.addEventListener("click", () => setLock("session", session.id, !session.locked, lockBtn));
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "danger";
+        del.textContent = "Delete";
+        del.disabled = !!session.live || protectedSession;
+        if (session.live) del.title = "Session Active";
+        else if (protectedSession) del.title = "Locked";
+        if (!del.disabled) del.addEventListener("click", () => openDialog([session]));
+        const moveBtn = document.createElement("button");
+        moveBtn.type = "button";
+        moveBtn.className = "move";
+        moveBtn.append(folderInputIcon());
+        moveBtn.setAttribute("aria-label", "Move to another folder");
+        moveBtn.disabled = !!session.live || protectedSession;
+        if (session.live) moveBtn.title = "Session Active";
+        else if (protectedSession) moveBtn.title = "Locked";
+        else moveBtn.title = "Move to another folder";
+        if (!moveBtn.disabled) moveBtn.addEventListener("click", () => openMove(session));
+        li.append(box, main, when, moveBtn, lockBtn, del);
+        return li;
+      }
+
+      async function copyText(text, button) {
+        const previous = button.textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          const area = document.createElement("textarea");
+          area.value = text;
+          document.body.append(area);
+          area.select();
+          document.execCommand("copy");
+          area.remove();
+        }
+        button.textContent = "Copied";
+        setTimeout(() => { button.textContent = previous; }, 900);
+      }
+
+      function sessionById(id) {
+        for (const group of groups) {
+          const found = group.sessions.find((session) => session.id === id);
+          if (found) return found;
+        }
+        return null;
+      }
+
+      async function setLock(kind, id, locked, button) {
+        if (button) button.disabled = true;
+        showError("");
+        let response;
+        try {
+          response = await fetch("/api/locks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ kind: kind, id: id, locked: locked }),
+          });
+        } catch {
+          if (button) button.disabled = false;
+          showError("Could not reach Grok Manager.");
+          return;
+        }
+        if (!response.ok) {
+          let message = "Could not update the lock.";
+          try {
+            const body = await response.json();
+            if (body && body.error) message = body.error;
+          } catch { /* keep default */ }
+          if (button) button.disabled = false;
+          showError(message);
+          return;
+        }
+        await load();
+      }
+
+      function setMoveVisible(show) {
+        dialogMove.hidden = !show;
+        moveField.hidden = !show;
+      }
+
+      function openMove(session) {
+        if (!deletable(session)) return;
+        const current = groups.find((group) => group.sessions.some((row) => row.id === session.id));
+        const choices = groups
+          .filter((group) => !current || group.cwd !== current.cwd)
+          .slice()
+          .sort((a, b) => a.label.localeCompare(b.label) || a.cwd.localeCompare(b.cwd));
+        dialogMode = "move";
+        pending = [session];
+        dialogTitle.textContent = "Move this session?";
+        dialogCopy.hidden = true;
+        dialogId.hidden = false;
+        dialogList.hidden = true;
+        dialogName.textContent = session.title;
+        dialogId.textContent = session.id;
+        moveTarget.replaceChildren();
+        for (const group of choices) {
+          const option = document.createElement("option");
+          option.value = group.cwd;
+          option.textContent = group.label + "  " + group.cwd;
+          moveTarget.append(option);
+        }
+        setMoveVisible(true);
+        confirmBtn.textContent = "Move";
+        confirmBtn.disabled = choices.length === 0;
+        dialogEl.hidden = false;
+        if (choices.length) moveTarget.focus();
+        else cancelBtn.focus();
+      }
+
+      function openDialog(sessions) {
+        dialogMode = "delete";
+        setMoveVisible(false);
+        confirmBtn.textContent = "Delete";
+        pending = sessions.filter((session) => deletable(session));
+        if (pending.length === 0) return;
+        const many = pending.length > 1;
+        dialogTitle.textContent = many ? "Delete " + pending.length + " sessions?" : "Delete this session?";
+        dialogCopy.hidden = many;
+        dialogId.hidden = many;
+        dialogList.hidden = !many;
+        dialogList.replaceChildren();
+        if (many) {
+          const shown = pending.slice(0, 8);
+          for (const session of shown) {
+            const li = document.createElement("li");
+            li.textContent = session.title;
+            const sid = document.createElement("span");
+            sid.className = "sid";
+            sid.textContent = session.id;
+            li.append(sid);
+            dialogList.append(li);
+          }
+          if (pending.length > shown.length) {
+            const more = document.createElement("li");
+            more.textContent = "and " + (pending.length - shown.length) + " more";
+            dialogList.append(more);
+          }
+        } else {
+          dialogName.textContent = pending[0].title;
+          dialogId.textContent = pending[0].id;
+        }
+        confirmBtn.disabled = false;
+        dialogEl.hidden = false;
+        cancelBtn.focus();
+      }
+
+      function closeDialog() {
+        pending = [];
+        dialogMode = "delete";
+        dialogEl.hidden = true;
+      }
+
+      async function confirmMove() {
+        const session = pending[0];
+        const cwd = moveTarget.value;
+        if (!session || !cwd) return;
+        confirmBtn.disabled = true;
+        showError("");
+        let response;
+        try {
+          response = await fetch("/api/sessions/move", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: session.id, cwd: cwd }),
+          });
+        } catch {
+          confirmBtn.disabled = false;
+          showError("Could not reach Grok Manager.");
+          return;
+        }
+        if (response.ok) {
+          closeDialog();
+          await load();
+          return;
+        }
+        let message = "Could not move that session.";
+        try {
+          const body = await response.json();
+          if (body && body.error) message = body.error;
+        } catch { /* keep default */ }
+        confirmBtn.disabled = false;
+        showError(message);
+        closeDialog();
+      }
+
+      async function confirmDelete() {
+        if (dialogMode === "move") {
+          await confirmMove();
+          return;
+        }
+        if (pending.length === 0) return;
+        const sessions = pending.slice();
+        confirmBtn.disabled = true;
+        showError("");
+        let response;
+        try {
+          if (sessions.length === 1) {
+            response = await fetch("/api/sessions/" + encodeURIComponent(sessions[0].id), { method: "DELETE" });
+          } else {
+            response = await fetch("/api/sessions/delete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ids: sessions.map((session) => session.id) }),
+            });
+          }
+        } catch {
+          confirmBtn.disabled = false;
+          showError("Could not reach Grok Manager.");
+          return;
+        }
+        if (sessions.length === 1) {
+          if (response.status === 204) {
+            selected.delete(sessions[0].id);
+            closeDialog();
+            await load();
+            return;
+          }
+          let message = "Could not delete that session.";
+          try {
+            const body = await response.json();
+            if (body && body.error) message = body.error;
+          } catch { /* keep default */ }
+          confirmBtn.disabled = false;
+          showError(message);
+          closeDialog();
+          return;
+        }
+        let body = {};
+        try { body = await response.json(); } catch { /* keep empty */ }
+        const deleted = new Set(Array.isArray(body.deleted) ? body.deleted : []);
+        for (const id of deleted) selected.delete(id);
+        const failed = Array.isArray(body.failed) ? body.failed : [];
+        closeDialog();
+        if (!response.ok && body.error) showError(body.error);
+        else if (failed.length) showError(failed.length + " session" + (failed.length === 1 ? "" : "s") + " could not be deleted.");
+        await load();
+      }
+
+      async function load() {
+        showError("");
+        let response;
+        try {
+          response = await fetch("/api/sessions", { cache: "no-store" });
+        } catch {
+          showError("Could not reach Grok Manager.");
+          return;
+        }
+        if (!response.ok) {
+          showError("Could not load sessions.");
+          return;
+        }
+        const data = await response.json();
+        groups = Array.isArray(data.groups) ? data.groups : [];
+        const known = new Set();
+        for (const group of groups) {
+          for (const session of group.sessions) known.add(session.id);
+        }
+        for (const id of [...selected]) {
+          if (!known.has(id)) selected.delete(id);
+        }
+        render();
+      }
+
+      filterEl.addEventListener("input", render);
+      clearSelectionBtn.addEventListener("click", () => {
+        selected.clear();
+        render();
+      });
+      deleteSelectedBtn.addEventListener("click", () => {
+        openDialog([...selected].map(sessionById).filter(Boolean));
+      });
+      cancelBtn.addEventListener("click", closeDialog);
+      confirmBtn.addEventListener("click", confirmDelete);
+      dialogEl.addEventListener("click", (event) => {
+        if (event.target === dialogEl) closeDialog();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !dialogEl.hidden) closeDialog();
+      });
+
+      load();
+    </script>
+  </body>
+</html>
