@@ -37,7 +37,7 @@
       header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
+        align-items: flex-start;
         gap: 1.5rem;
         margin-bottom: 1.75rem;
       }
@@ -73,6 +73,19 @@
       }
       .lede a { color: var(--fg); }
       .tools { display: flex; flex-direction: column; align-items: flex-end; gap: 0.55rem; }
+      button.fold-all {
+        font: inherit;
+        font-size: 0.82rem;
+        border-radius: 999px;
+        padding: 0.38rem 0.75rem;
+        cursor: pointer;
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--line);
+      }
+      button.fold-all:hover, button.fold-all:focus-visible { border-color: var(--accent); color: var(--accent); }
+      button.fold-all:disabled { opacity: 0.45; cursor: not-allowed; }
+      button.fold-all { align-self: flex-end; }
       .count { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
       input[type="search"] {
         width: min(280px, 70vw);
@@ -99,16 +112,41 @@
       .section-head {
         display: flex;
         justify-content: space-between;
-        align-items: baseline;
+        align-items: center;
         gap: 1rem;
         padding: 0 0.15rem 0.45rem;
       }
       .section-head h2 {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
         margin: 0;
         font-size: 1.02rem;
         font-weight: 600;
         letter-spacing: -0.01em;
       }
+      button.fold {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.28rem;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      button.fold svg {
+        width: 1rem;
+        height: 1rem;
+        color: var(--muted);
+        flex: none;
+      }
+      button.fold:hover svg, button.fold:focus-visible svg { color: var(--fg); }
+      button.fold:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+      ul.rows[hidden] { display: none; }
       button.path {
         display: block;
         margin: 0;
@@ -357,6 +395,7 @@
       @media (max-width: 720px) {
         header { flex-direction: column; align-items: stretch; }
         .tools { align-items: stretch; }
+        button.fold-all { align-self: flex-start; }
         input[type="search"] { width: 100%; }
         li.row { grid-template-columns: auto minmax(0, 1fr) auto auto; }
         .when, .live { grid-column: 2; }
@@ -375,6 +414,7 @@
           <p class="lede">Sessions on this machine, grouped by folder. <a id="hub" href="/">Hub</a></p>
         </div>
         <div class="tools">
+          <button class="fold-all" id="fold-all" type="button">Collapse all</button>
           <div class="count" id="count"></div>
           <input id="filter" type="search" placeholder="Filter by name or session id" autocomplete="off" />
         </div>
@@ -426,6 +466,7 @@
       const selectionCount = document.getElementById("selection-count");
       const clearSelectionBtn = document.getElementById("clear-selection");
       const deleteSelectedBtn = document.getElementById("delete-selected");
+      const foldAllBtn = document.getElementById("fold-all");
       const hub = document.getElementById("hub");
 
       hub.href = location.protocol + "//" + location.hostname + ":8000/";
@@ -434,10 +475,13 @@
       let pending = [];
       let dialogMode = "delete";
       const selected = new Set();
+      const collapsed = new Set();
 
       const FOLDER_INPUT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1"/><path d="M2 13h10"/><path d="m9 16 3-3-3-3"/></svg>';
       const LOCK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
       const LOCK_OPEN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';
+      const CHEVRON_DOWN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+      const CHEVRON_RIGHT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
 
       function lockIcon(open) {
         const holder = document.createElement("span");
@@ -450,6 +494,40 @@
         holder.innerHTML = FOLDER_INPUT_SVG;
         return holder.firstElementChild;
       }
+
+      function chevronIcon(folded) {
+        const holder = document.createElement("span");
+        holder.innerHTML = folded ? CHEVRON_RIGHT_SVG : CHEVRON_DOWN_SVG;
+        return holder.firstElementChild;
+      }
+
+      function shownGroups(query) {
+        return groups.filter((group) => group.sessions.some((session) => matches(session, query)));
+      }
+
+      function everyShownCollapsed(query) {
+        const shown = shownGroups(query);
+        return shown.length > 0 && shown.every((group) => collapsed.has(group.cwd));
+      }
+
+      function syncFoldAll() {
+        const query = filterEl.value.trim().toLowerCase();
+        const allFolded = everyShownCollapsed(query);
+        foldAllBtn.textContent = allFolded ? "Expand all" : "Collapse all";
+        foldAllBtn.setAttribute("aria-pressed", allFolded ? "true" : "false");
+        foldAllBtn.disabled = shownGroups(query).length === 0;
+      }
+
+      foldAllBtn.addEventListener("click", () => {
+        const query = filterEl.value.trim().toLowerCase();
+        const shown = shownGroups(query);
+        if (everyShownCollapsed(query)) {
+          for (const group of shown) collapsed.delete(group.cwd);
+        } else {
+          for (const group of shown) collapsed.add(group.cwd);
+        }
+        render();
+      });
 
       function showError(message) {
         if (!message) {
@@ -531,7 +609,24 @@
           });
           const titles = document.createElement("div");
           const h2 = document.createElement("h2");
-          h2.textContent = group.label;
+          const folded = collapsed.has(group.cwd);
+          const fold = document.createElement("button");
+          fold.type = "button";
+          fold.className = "fold";
+          fold.append(chevronIcon(folded), document.createTextNode(group.label));
+          fold.setAttribute("aria-expanded", folded ? "false" : "true");
+          fold.setAttribute("aria-label", (folded ? "Expand " : "Collapse ") + group.label);
+          fold.addEventListener("click", () => {
+            const now = !collapsed.has(group.cwd);
+            if (now) collapsed.add(group.cwd);
+            else collapsed.delete(group.cwd);
+            ul.hidden = now;
+            fold.setAttribute("aria-expanded", now ? "false" : "true");
+            fold.setAttribute("aria-label", (now ? "Expand " : "Collapse ") + group.label);
+            fold.replaceChildren(chevronIcon(now), document.createTextNode(group.label));
+            syncFoldAll();
+          });
+          h2.append(fold);
           if (group.locked) {
             const pill = document.createElement("span");
             pill.className = "pill";
@@ -564,11 +659,13 @@
           head.append(titleWrap, actions);
           const ul = document.createElement("ul");
           ul.className = "rows";
+          ul.hidden = collapsed.has(group.cwd);
           for (const session of sessions) ul.append(row(session, group));
           section.append(head, ul);
           listEl.append(section);
         }
         countEl.textContent = total === 1 ? "1 session" : total + " sessions";
+        syncFoldAll();
         if (shown === 0) {
           const empty = document.createElement("p");
           empty.className = "empty";
