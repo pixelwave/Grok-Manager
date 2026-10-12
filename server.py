@@ -21,7 +21,17 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ID_RE = re.compile(r"^[0-9a-f-]{36}$")
 HOST = "127.0.0.1"
 PORT = 18090
-STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(ROOT_DIR, "static")
+
+
+def app_version() -> str:
+    try:
+        with open(os.path.join(ROOT_DIR, "VERSION"), encoding="utf-8") as handle:
+            version = handle.read().strip()
+    except OSError:
+        return "0"
+    return version or "0"
 _LOCKS_GUARD = threading.Lock()
 
 
@@ -96,6 +106,83 @@ def clear_session_lock(session_id: str) -> None:
             return
         locks["sessions"].discard(session_id)
         save_locks(locks)
+
+
+def pins_path() -> str:
+    return os.environ.get("GROK_PINS_PATH") or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "pins.json"
+    )
+
+
+def load_pins() -> list[str]:
+    try:
+        with open(pins_path(), encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+    items = data.get("sessions")
+    if not isinstance(items, list):
+        return []
+    pins: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        if isinstance(item, str) and ID_RE.fullmatch(item) and item not in seen:
+            seen.add(item)
+            pins.append(item)
+    return pins
+
+
+def save_pins(pins: list[str]) -> None:
+    path = pins_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    temporary = path + ".tmp"
+    with open(temporary, "w", encoding="utf-8") as handle:
+        json.dump({"sessions": pins}, handle, indent=2)
+        handle.write("\n")
+    os.replace(temporary, path)
+
+
+def clear_pin(session_id: str) -> None:
+    with _LOCKS_GUARD:
+        pins = load_pins()
+        if session_id not in pins:
+            return
+        save_pins([item for item in pins if item != session_id])
+
+
+def set_pin(ident: object, pinned: object) -> tuple[int, dict]:
+    if not isinstance(ident, str) or pinned not in (True, False):
+        return 400, {"error": "Unknown pin"}
+    if not ID_RE.fullmatch(ident):
+        return 400, {"error": "Invalid session id"}
+    if pinned and find_session_dir(ident) is None:
+        return 404, {"error": "Session not found"}
+    with _LOCKS_GUARD:
+        pins = [item for item in load_pins() if item != ident]
+        if pinned:
+            pins.insert(0, ident)
+        save_pins(pins)
+    return 200, {"ok": True}
+
+
+def reorder_pins(order: object) -> tuple[int, dict]:
+    if not isinstance(order, list):
+        return 400, {"error": "Unknown pin"}
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for item in order:
+        if not isinstance(item, str) or not ID_RE.fullmatch(item) or item in seen:
+            return 400, {"error": "Invalid session id"}
+        seen.add(item)
+        cleaned.append(item)
+    with _LOCKS_GUARD:
+        current = load_pins()
+        if set(cleaned) != set(current):
+            return 409, {"error": "Pin list changed"}
+        save_pins(cleaned)
+    return 200, {"ok": True}
 
 
 def set_lock(kind: object, ident: object, locked: object) -> tuple[int, dict]:
@@ -229,6 +316,7 @@ def list_groups() -> list[dict]:
         return []
     live = live_ids()
     locks = load_locks()
+    pins = set(load_pins())
     grouped: dict[str, list[dict]] = {}
     try:
         names = sorted(os.listdir(root))
@@ -252,6 +340,7 @@ def list_groups() -> list[dict]:
             row = _session_row(summary_path, live)
             if row is not None:
                 row["locked"] = row["id"] in locks["sessions"]
+                row["pinned"] = row["id"] in pins
                 rows.append(row)
         if not rows:
             continue
@@ -345,6 +434,7 @@ def delete_session(session_id: str) -> tuple[int, str | None]:
     if os.path.isdir(path):
         return 500, "Could not delete session"
     clear_session_lock(session_id)
+    clear_pin(session_id)
     return 204, None
 
 
@@ -353,6 +443,8 @@ def _post_error(path: str) -> str:
         return "Choose at least one session"
     if path == "/api/sessions/move":
         return "Unknown folder"
+    if path == "/api/pins":
+        return "Unknown pin"
     return "Unknown lock"
 
 
@@ -528,12 +620,15 @@ def delete_sessions(ids: object) -> tuple[int, dict]:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "GrokManager/1.0"
+    server_version = "GrokManager"
+
+    def version_string(self) -> str:
+        return f"GrokManager/{app_version()}"
 
     def do_GET(self) -> None:  # noqa: N802
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/sessions":
-            self._send_json(200, {"groups": list_groups()})
+            self._send_json(200, {"groups": list_groups(), "pinned": load_pins()})
             return
         if path in ("/", "/index.html"):
             self._send_file("index.html", "text/html; charset=utf-8")
@@ -563,6 +658,13 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/locks":
             status, body = set_lock(payload.get("kind"), payload.get("id"), payload.get("locked"))
+            self._send_json(status, body)
+            return
+        if path == "/api/pins":
+            if "order" in payload:
+                status, body = reorder_pins(payload.get("order"))
+            else:
+                status, body = set_pin(payload.get("id"), payload.get("pinned"))
             self._send_json(status, body)
             return
         if path == "/api/sessions/move":
@@ -609,6 +711,8 @@ class Handler(BaseHTTPRequestHandler):
         except OSError:
             self._send_json(404, {"error": "Not found"})
             return
+        if name == "index.html":
+            body = body.replace(b"__VERSION__", app_version().encode("utf-8"))
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Cache-Control", "no-store")

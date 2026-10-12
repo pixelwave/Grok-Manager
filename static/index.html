@@ -66,6 +66,12 @@
         border-radius: 999px;
         padding: 0.2rem 0.5rem 0.15rem;
       }
+      .version {
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
       .lede {
         margin: 0.45rem 0 0;
         color: var(--muted);
@@ -176,7 +182,7 @@
       }
       li.row {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
+        grid-template-columns: auto minmax(0, 1fr) auto auto auto auto auto;
         gap: 0.8rem 1rem;
         align-items: center;
         padding: 0.85rem 1rem;
@@ -192,7 +198,7 @@
       .check:disabled { cursor: not-allowed; }
       .head-main { display: flex; align-items: flex-start; gap: 0.7rem; min-width: 0; }
       .head-actions { display: flex; align-items: center; gap: 0.55rem; }
-      button.lock {
+      button.lock, button.pin {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -205,12 +211,87 @@
         border: 1px solid var(--line);
         border-radius: 999px;
       }
-      button.lock svg { width: 1rem; height: 1rem; }
-      button.lock[aria-pressed="true"] {
+      button.lock svg, button.pin svg { width: 1rem; height: 1rem; }
+      button.lock[aria-pressed="true"], button.pin[aria-pressed="true"] {
         color: var(--accent);
         border-color: rgba(255, 79, 163, 0.7);
       }
-      button.lock:disabled { opacity: 0.45; cursor: wait; }
+      button.lock:disabled, button.pin:disabled { opacity: 0.45; cursor: wait; }
+      button.drag {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.15rem;
+        height: 2rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        cursor: grab;
+        touch-action: none;
+      }
+      button.drag svg { width: 1rem; height: 1rem; }
+      button.drag:hover, button.drag:focus-visible { color: var(--fg); }
+      button.drag:active, li.row.dragging button.drag { cursor: grabbing; }
+      section.pinned { margin-bottom: 1.7rem; }
+      section.pinned ul.rows {
+        position: relative;
+        isolation: isolate;
+        border-color: rgba(255, 79, 163, 0.55);
+        background: var(--panel);
+      }
+      section.pinned ul.rows::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(180deg, rgba(255, 79, 163, 0.09), transparent 42%);
+        pointer-events: none;
+        z-index: 2;
+      }
+      section.pinned li.row { background: var(--panel); }
+      section.pinned ul.rows.reordering { overflow: visible; z-index: 1; }
+      section.pinned ul.rows.reordering li.row {
+        transition: transform 160ms cubic-bezier(0.2, 0, 0, 1), box-shadow 160ms ease;
+      }
+      section.pinned ul.rows.reordering li.row.dragging {
+        z-index: 3;
+        background: #1e1e24;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
+        transition: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        section.pinned ul.rows.reordering li.row { transition: none; }
+      }
+      .where {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 0.45rem;
+        padding: 0.08rem 0.45rem;
+        border: 1px solid rgba(255, 79, 163, 0.45);
+        border-radius: 999px;
+        color: var(--accent);
+        font-size: 0.68rem;
+        letter-spacing: 0.04em;
+        vertical-align: 0.12em;
+      }
+      .separator {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 0.3rem 0 1.35rem;
+        color: var(--muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .separator::before, .separator::after {
+        content: "";
+        height: 1px;
+        flex: 1;
+        background: var(--line);
+      }
+      .separator::before { background: linear-gradient(90deg, var(--accent), var(--line)); }
       .pill {
         display: inline-flex;
         align-items: center;
@@ -397,7 +478,7 @@
         .tools { align-items: stretch; }
         button.fold-all { align-self: flex-start; }
         input[type="search"] { width: 100%; }
-        li.row { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+        li.row { grid-template-columns: auto minmax(0, 1fr) auto auto auto auto; }
         .when, .live { grid-column: 2; }
       }
     </style>
@@ -410,6 +491,7 @@
             <span class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M9.27 15.29l7.978-5.897c.391-.29.95-.177 1.137.272.98 2.369.542 5.215-1.41 7.169-1.951 1.954-4.667 2.382-7.149 1.406l-2.711 1.257c3.889 2.661 8.611 2.003 11.562-.953 2.341-2.344 3.066-5.539 2.388-8.42l.006.007c-.983-4.232.242-5.924 2.75-9.383.06-.082.12-.164.179-.248l-3.301 3.305v-.01L9.267 15.292M7.623 16.723c-2.792-2.67-2.31-6.801.071-9.184 1.761-1.763 4.647-2.483 7.166-1.425l2.705-1.25a7.808 7.808 0 00-1.829-1A8.975 8.975 0 005.984 5.83c-2.533 2.536-3.33 6.436-1.962 9.764 1.022 2.487-.653 4.246-2.34 6.022-.599.63-1.199 1.259-1.682 1.925l7.62-6.815"/></svg></span>
             <h1><span class="grok">Grok</span> Manager</h1>
             <span class="mark">Build</span>
+            <span class="version">v__VERSION__</span>
           </div>
           <p class="lede">Sessions on this machine, grouped by folder. <a id="hub" href="/">Hub</a></p>
         </div>
@@ -472,6 +554,7 @@
       hub.href = location.protocol + "//" + location.hostname + ":8000/";
 
       let groups = [];
+      let pinOrder = [];
       let pending = [];
       let dialogMode = "delete";
       const selected = new Set();
@@ -480,6 +563,8 @@
       const FOLDER_INPUT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1"/><path d="M2 13h10"/><path d="m9 16 3-3-3-3"/></svg>';
       const LOCK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
       const LOCK_OPEN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';
+      const PIN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>';
+      const GRIP_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
       const CHEVRON_DOWN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
       const CHEVRON_RIGHT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
 
@@ -493,6 +578,151 @@
         const holder = document.createElement("span");
         holder.innerHTML = FOLDER_INPUT_SVG;
         return holder.firstElementChild;
+      }
+
+      function pinIcon() {
+        const holder = document.createElement("span");
+        holder.innerHTML = PIN_SVG;
+        return holder.firstElementChild;
+      }
+
+      function gripIcon() {
+        const holder = document.createElement("span");
+        holder.innerHTML = GRIP_SVG;
+        return holder.firstElementChild;
+      }
+
+      function mergePinOrder(visible) {
+        const visibleSet = new Set(visible);
+        const full = pinOrder.slice();
+        for (const id of visible) {
+          if (!full.includes(id)) full.push(id);
+        }
+        let index = 0;
+        return full.map((id) => (visibleSet.has(id) ? visible[index++] : id));
+      }
+
+      async function commitPinOrder(list) {
+        const visible = [...list.querySelectorAll("li.row")].map((row) => row.dataset.id);
+        const order = mergePinOrder(visible);
+        if (order.join("\n") === pinOrder.join("\n")) return;
+        showError("");
+        let response;
+        try {
+          response = await fetch("/api/pins", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ order: order }),
+          });
+        } catch {
+          showError("Could not reach Grok Manager.");
+          await load();
+          return;
+        }
+        if (!response.ok) {
+          let message = "Could not reorder pins.";
+          try {
+            const body = await response.json();
+            if (body && body.error) message = body.error;
+          } catch { /* keep default */ }
+          showError(message);
+          await load();
+          return;
+        }
+        pinOrder = order;
+      }
+
+      function rowOrder(list) {
+        return [...list.querySelectorAll("li.row")].map((row) => row.dataset.id).join("\n");
+      }
+
+      function slideRows(list) {
+        const rows = [...list.querySelectorAll("li.row")].filter((row) => !row.classList.contains("dragging"));
+        const before = new Map(rows.map((row) => [row, row.offsetTop]));
+        return () => {
+          let changed = false;
+          for (const [row, top] of before) {
+            const delta = top - row.offsetTop;
+            if (!delta) continue;
+            changed = true;
+            row.style.transition = "none";
+            row.style.transform = "translateY(" + delta + "px)";
+          }
+          if (!changed) return;
+          list.getBoundingClientRect();
+          for (const row of before.keys()) {
+            row.style.transition = "";
+            row.style.transform = "";
+          }
+        };
+      }
+
+      function settleDrag(list) {
+        window.setTimeout(() => {
+          if (!list.querySelector("li.row.dragging")) list.classList.remove("reordering");
+        }, 180);
+      }
+
+      function bindPinnedDrag(handle, li) {
+        handle.addEventListener("pointerdown", (event) => {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          const list = li.parentElement;
+          const startOrder = rowOrder(list);
+          const grabOffset = event.clientY - (list.getBoundingClientRect().top + li.offsetTop);
+          list.classList.add("reordering");
+          li.classList.add("dragging");
+          li.style.transform = "scale(1.012)";
+          const follow = (clientY) => {
+            const dy = clientY - grabOffset - (list.getBoundingClientRect().top + li.offsetTop);
+            li.style.transform = "translateY(" + dy + "px) scale(1.012)";
+          };
+          const move = (ev) => {
+            if (ev.pointerId !== event.pointerId) return;
+            const pointer = ev.clientY - list.getBoundingClientRect().top;
+            const target = [...list.querySelectorAll("li.row")].find((row) => {
+              if (row === li) return false;
+              return pointer < row.offsetTop + row.offsetHeight / 2;
+            });
+            const before = rowOrder(list);
+            const play = slideRows(list);
+            if (target) list.insertBefore(li, target);
+            else list.append(li);
+            if (rowOrder(list) !== before) play();
+            follow(ev.clientY);
+          };
+          const finish = (ev) => {
+            if (ev.pointerId !== event.pointerId) return;
+            window.removeEventListener("pointermove", move);
+            window.removeEventListener("pointerup", finish);
+            window.removeEventListener("pointercancel", finish);
+            li.style.transition = "none";
+            li.getBoundingClientRect();
+            li.classList.remove("dragging");
+            li.style.transition = "";
+            li.style.transform = "";
+            settleDrag(list);
+            if (rowOrder(list) !== startOrder) commitPinOrder(list);
+          };
+          window.addEventListener("pointermove", move);
+          window.addEventListener("pointerup", finish);
+          window.addEventListener("pointercancel", finish);
+        });
+        handle.addEventListener("keydown", (event) => {
+          const list = li.parentElement;
+          const up = event.key === "ArrowUp" && li.previousElementSibling;
+          const down = event.key === "ArrowDown" && li.nextElementSibling;
+          if (!up && !down) return;
+          event.preventDefault();
+          list.classList.add("reordering");
+          const play = slideRows(list);
+          if (up) list.insertBefore(li, li.previousElementSibling);
+          else list.insertBefore(li.nextElementSibling, li);
+          play();
+          settleDrag(list);
+          commitPinOrder(list);
+          handle.focus();
+        });
       }
 
       function chevronIcon(folded) {
@@ -577,12 +807,52 @@
         listEl.replaceChildren();
         let shown = 0;
         let total = 0;
+        const pinnedLookup = new Map();
+        for (const group of groups) {
+          for (const session of group.sessions) {
+            if (session.pinned) pinnedLookup.set(session.id, { session, group });
+          }
+        }
+        const copies = [];
+        const seenPins = new Set();
+        for (const id of pinOrder) {
+          const item = pinnedLookup.get(id);
+          if (!item || seenPins.has(id) || !matches(item.session, query)) continue;
+          seenPins.add(id);
+          copies.push(item);
+        }
+        for (const [id, item] of pinnedLookup) {
+          if (seenPins.has(id) || !matches(item.session, query)) continue;
+          copies.push(item);
+        }
+        if (copies.length) {
+          const pinnedSection = document.createElement("section");
+          pinnedSection.className = "pinned";
+          const pinnedHead = document.createElement("div");
+          pinnedHead.className = "section-head";
+          const pinnedTitle = document.createElement("h2");
+          pinnedTitle.textContent = "Pinned";
+          const pinnedCount = document.createElement("div");
+          pinnedCount.className = "n";
+          pinnedCount.textContent = String(copies.length);
+          pinnedHead.append(pinnedTitle, pinnedCount);
+          const pinnedList = document.createElement("ul");
+          pinnedList.className = "rows";
+          for (const item of copies) pinnedList.append(row(item.session, item.group, true));
+          pinnedSection.append(pinnedHead, pinnedList);
+          const rule = document.createElement("div");
+          rule.className = "separator";
+          rule.setAttribute("role", "separator");
+          rule.textContent = "All sessions";
+          listEl.append(pinnedSection, rule);
+        }
         for (const group of groups) {
           total += group.sessions.length;
           const sessions = group.sessions.filter((session) => matches(session, query));
           if (sessions.length === 0) continue;
           shown += sessions.length;
           const section = document.createElement("section");
+          section.dataset.cwd = group.cwd;
           const head = document.createElement("div");
           head.className = "section-head";
           const titleWrap = document.createElement("div");
@@ -601,10 +871,7 @@
               if (headCheck.checked) selected.add(session.id);
               else selected.delete(session.id);
             }
-            for (const box of section.querySelectorAll("li.row input.check")) {
-              if (!box.disabled) box.checked = headCheck.checked;
-            }
-            headCheck.indeterminate = false;
+            syncChecks();
             updateBar();
           });
           const titles = document.createElement("div");
@@ -660,7 +927,7 @@
           const ul = document.createElement("ul");
           ul.className = "rows";
           ul.hidden = collapsed.has(group.cwd);
-          for (const session of sessions) ul.append(row(session, group));
+          for (const session of sessions) ul.append(row(session, group, false));
           section.append(head, ul);
           listEl.append(section);
         }
@@ -681,39 +948,67 @@
         selectionCount.textContent = count === 1 ? "1 selected" : count + " selected";
       }
 
+      function syncChecks() {
+        for (const box of listEl.querySelectorAll("li.row input.check")) {
+          const id = box.closest("li").dataset.id;
+          if (!box.disabled) box.checked = selected.has(id);
+        }
+        for (const section of listEl.querySelectorAll("section[data-cwd]")) {
+          const boxes = [...section.querySelectorAll("li.row input.check")].filter((item) => !item.disabled);
+          const head = section.querySelector(".head-main input.check");
+          if (!head) continue;
+          const picked = boxes.filter((item) => item.checked).length;
+          head.checked = boxes.length > 0 && picked === boxes.length;
+          head.indeterminate = picked > 0 && picked < boxes.length;
+        }
+      }
+
       function deletable(session) {
         if (!session || session.live || session.locked) return false;
         const group = groups.find((item) => item.sessions.some((row) => row.id === session.id));
         return !(group && group.locked);
       }
 
-      function row(session, group) {
+      function row(session, group, pinnedCopy) {
         const protectedSession = !!(session.locked || (group && group.locked));
         const li = document.createElement("li");
         li.className = "row";
-        const box = document.createElement("input");
-        box.type = "checkbox";
-        box.className = "check";
-        box.checked = selected.has(session.id);
-        box.disabled = !!session.live || protectedSession;
-        box.title = session.live ? "Session Active" : protectedSession ? "Locked" : "Select session";
-        if (!box.disabled) {
-          box.addEventListener("change", () => {
-            if (box.checked) selected.add(session.id);
-            else selected.delete(session.id);
-            const section = li.closest("section");
-            const boxes = [...section.querySelectorAll("li.row input.check")].filter((item) => !item.disabled);
-            const head = section.querySelector(".head-main input.check");
-            const picked = boxes.filter((item) => item.checked).length;
-            head.checked = boxes.length > 0 && picked === boxes.length;
-            head.indeterminate = picked > 0 && picked < boxes.length;
-            updateBar();
-          });
+        li.dataset.id = session.id;
+        let lead;
+        if (pinnedCopy) {
+          lead = document.createElement("button");
+          lead.type = "button";
+          lead.className = "drag";
+          lead.append(gripIcon());
+          lead.setAttribute("aria-label", "Drag to reorder " + session.title);
+          lead.title = "Drag to reorder";
+          bindPinnedDrag(lead, li);
+        } else {
+          lead = document.createElement("input");
+          lead.type = "checkbox";
+          lead.className = "check";
+          lead.checked = selected.has(session.id);
+          lead.disabled = !!session.live || protectedSession;
+          lead.title = session.live ? "Session Active" : protectedSession ? "Locked" : "Select session";
+          if (!lead.disabled) {
+            lead.addEventListener("change", () => {
+              if (lead.checked) selected.add(session.id);
+              else selected.delete(session.id);
+              syncChecks();
+              updateBar();
+            });
+          }
         }
         const main = document.createElement("div");
         const title = document.createElement("div");
         title.className = "title";
         title.textContent = session.title;
+        if (pinnedCopy) {
+          const where = document.createElement("span");
+          where.className = "where";
+          where.textContent = group.label;
+          title.append(where);
+        }
         if (protectedSession) {
           const pill = document.createElement("span");
           pill.className = "pill";
@@ -746,6 +1041,14 @@
           when.textContent = relTime(session.updatedAt);
           if (session.updatedAt) when.title = session.updatedAt;
         }
+        const pinBtn = document.createElement("button");
+        pinBtn.type = "button";
+        pinBtn.className = "pin";
+        pinBtn.append(pinIcon());
+        pinBtn.setAttribute("aria-pressed", session.pinned ? "true" : "false");
+        pinBtn.setAttribute("aria-label", session.pinned ? "Unpin " + session.title : "Pin " + session.title);
+        pinBtn.title = session.pinned ? "Unpin" : "Pin";
+        pinBtn.addEventListener("click", () => setPin(session.id, !session.pinned, pinBtn));
         const lockBtn = document.createElement("button");
         lockBtn.type = "button";
         lockBtn.className = "lock";
@@ -772,7 +1075,7 @@
         else if (protectedSession) moveBtn.title = "Locked";
         else moveBtn.title = "Move to another folder";
         if (!moveBtn.disabled) moveBtn.addEventListener("click", () => openMove(session));
-        li.append(box, main, when, moveBtn, lockBtn, del);
+        li.append(lead, main, when, moveBtn, pinBtn, lockBtn, del);
         return li;
       }
 
@@ -817,6 +1120,34 @@
         }
         if (!response.ok) {
           let message = "Could not update the lock.";
+          try {
+            const body = await response.json();
+            if (body && body.error) message = body.error;
+          } catch { /* keep default */ }
+          if (button) button.disabled = false;
+          showError(message);
+          return;
+        }
+        await load();
+      }
+
+      async function setPin(id, pinned, button) {
+        if (button) button.disabled = true;
+        showError("");
+        let response;
+        try {
+          response = await fetch("/api/pins", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: id, pinned: pinned }),
+          });
+        } catch {
+          if (button) button.disabled = false;
+          showError("Could not reach Grok Manager.");
+          return;
+        }
+        if (!response.ok) {
+          let message = "Could not update the pin.";
           try {
             const body = await response.json();
             if (body && body.error) message = body.error;
@@ -1007,6 +1338,7 @@
         }
         const data = await response.json();
         groups = Array.isArray(data.groups) ? data.groups : [];
+        pinOrder = Array.isArray(data.pinned) ? data.pinned : [];
         const known = new Set();
         for (const group of groups) {
           for (const session of group.sessions) known.add(session.id);

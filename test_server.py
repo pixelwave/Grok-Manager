@@ -29,6 +29,7 @@ class ScannerTests(unittest.TestCase):
         os.environ["GROK_SESSIONS_DIR"] = os.path.join(self.tmp, "sessions")
         os.environ["GROK_ACTIVE_SESSIONS"] = self.active
         os.environ["GROK_LOCKS_PATH"] = os.path.join(self.tmp, "locks.json")
+        os.environ["GROK_PINS_PATH"] = os.path.join(self.tmp, "pins.json")
         os.makedirs(os.environ["GROK_SESSIONS_DIR"])
         with open(self.active, "w", encoding="utf-8") as handle:
             json.dump([], handle)
@@ -38,6 +39,7 @@ class ScannerTests(unittest.TestCase):
         os.environ.pop("GROK_SESSIONS_DIR", None)
         os.environ.pop("GROK_ACTIVE_SESSIONS", None)
         os.environ.pop("GROK_LOCKS_PATH", None)
+        os.environ.pop("GROK_PINS_PATH", None)
         os.environ.pop("GROK_MEMORY_WORKSPACES", None)
         os.environ.pop("GROK_DASHBOARD_DB", None)
 
@@ -267,6 +269,33 @@ class ScannerTests(unittest.TestCase):
         self.assertEqual(server.set_lock("session", session_id, True)[0], 200)
         self.assertEqual(server.move_session(session_id, "/root/projects/plannr")[0], 409)
         self.assertTrue(os.path.isdir(moved))
+
+    def test_pin_orders_newest_first_and_delete_clears_it(self):
+        first = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
+        second = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
+        self.add_session("/root/projects/plannr", first, "Mobile", "2026-03-01T00:00:00Z")
+        self.add_session("/root/projects/netadmin", second, "Net", "2026-04-01T00:00:00Z")
+        self.assertEqual(server.set_pin(first, True)[0], 200)
+        self.assertEqual(server.set_pin(second, True)[0], 200)
+        self.assertEqual(server.load_pins(), [second, first])
+        self.assertEqual(server.reorder_pins([first, second])[0], 200)
+        self.assertEqual(server.load_pins(), [first, second])
+        self.assertEqual(server.reorder_pins([first])[0], 409)
+        self.assertEqual(server.reorder_pins([first, first])[0], 400)
+        groups = {group["cwd"]: group["sessions"][0] for group in server.list_groups()}
+        self.assertTrue(groups["/root/projects/plannr"]["pinned"])
+        self.assertTrue(groups["/root/projects/netadmin"]["pinned"])
+        self.assertEqual(server.set_pin("cccccccc-cccc-cccc-cccc-ccccccccccc1", True)[0], 404)
+        self.assertEqual(server.set_pin("not-an-id", True), (400, {"error": "Invalid session id"}))
+        self.assertEqual(server.move_session(first, "/root/projects/netadmin")[0], 200)
+        self.assertEqual(server.load_pins(), [first, second])
+        self.assertEqual(server.delete_session(second)[0], 204)
+        self.assertEqual(server.load_pins(), [first])
+        self.assertEqual(server.set_pin(first, False)[0], 200)
+        self.assertEqual(server.load_pins(), [])
+
+    def test_app_version_is_numbered(self):
+        self.assertRegex(server.app_version(), r"^\d+\.\d+$")
 
 
 if __name__ == "__main__":
