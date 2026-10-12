@@ -1,7 +1,7 @@
 # Grok Build - Sessions Manager
 
 
-<img width="2298" height="662" alt="Mask group-1" src="https://github.com/user-attachments/assets/0cfb4c59-df5d-4d83-8798-bf46b3329fd5" />
+<img width="2298" height="1594" alt="Mask group" src="https://github.com/user-attachments/assets/1c49ce81-4d38-45c5-8613-a7b8a55af25f" />
 
 
 A local page for the Grok sessions on one machine. Sessions are grouped by project folder. You can lock a session or a folder, move a session, and delete one you no longer need.
