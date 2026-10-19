@@ -30,6 +30,7 @@ class ScannerTests(unittest.TestCase):
         os.environ["GROK_ACTIVE_SESSIONS"] = self.active
         os.environ["GROK_LOCKS_PATH"] = os.path.join(self.tmp, "locks.json")
         os.environ["GROK_PINS_PATH"] = os.path.join(self.tmp, "pins.json")
+        os.environ["GROK_MACHINES_PATH"] = os.path.join(self.tmp, "machines.json")
         os.makedirs(os.environ["GROK_SESSIONS_DIR"])
         with open(self.active, "w", encoding="utf-8") as handle:
             json.dump([], handle)
@@ -40,6 +41,7 @@ class ScannerTests(unittest.TestCase):
         os.environ.pop("GROK_ACTIVE_SESSIONS", None)
         os.environ.pop("GROK_LOCKS_PATH", None)
         os.environ.pop("GROK_PINS_PATH", None)
+        os.environ.pop("GROK_MACHINES_PATH", None)
         os.environ.pop("GROK_MEMORY_WORKSPACES", None)
         os.environ.pop("GROK_DASHBOARD_DB", None)
 
@@ -296,6 +298,21 @@ class ScannerTests(unittest.TestCase):
 
     def test_app_version_is_numbered(self):
         self.assertRegex(server.app_version(), r"^\d+\.\d+$")
+
+    def test_added_machines_persist_and_reject_bad_urls(self):
+        self.assertEqual(server.load_machines(), [])
+        status, body = server.add_machine("Office", "https://office.example:8090/")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["machines"], [{"name": "Office", "url": "https://office.example:8090/"}])
+        self.assertEqual(server.load_machines(), body["machines"])
+        self.assertEqual(server.add_machine("office", "https://other.example/")[0], 409)
+        self.assertEqual(server.add_machine("  ", "https://office.example/")[0], 400)
+        self.assertEqual(server.add_machine("Lab", "javascript:alert(1)")[0], 400)
+        self.assertEqual(server.add_machine("Lab", "http://lab.example/")[0], 200)
+        removed = server.remove_machine("Office")
+        self.assertEqual(removed[0], 200)
+        self.assertEqual([item["name"] for item in removed[1]["machines"]], ["Lab"])
+        self.assertEqual(server.remove_machine("Office")[0], 404)
 
 
 if __name__ == "__main__":

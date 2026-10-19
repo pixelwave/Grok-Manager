@@ -141,6 +141,93 @@ def load_pins() -> list[str]:
     return pins
 
 
+def machines_path() -> str:
+    return os.environ.get("GROK_MACHINES_PATH") or os.path.join(ROOT_DIR, "machines.json")
+
+
+def load_machines() -> list[dict]:
+    try:
+        with open(machines_path(), encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        data = {}
+    if not isinstance(data, dict):
+        return []
+    items = data.get("machines")
+    if not isinstance(items, list):
+        return []
+    machines: list[dict] = []
+    seen: set[str] = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        url = item.get("url")
+        if not isinstance(name, str) or not isinstance(url, str):
+            continue
+        key = name.casefold()
+        if key in seen or machine_url(url) is None:
+            continue
+        seen.add(key)
+        machines.append({"name": name, "url": url})
+    return machines
+
+
+def save_machines(machines: list[dict]) -> None:
+    path = machines_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    temporary = path + ".tmp"
+    with open(temporary, "w", encoding="utf-8") as handle:
+        json.dump({"machines": machines}, handle, indent=2)
+        handle.write("\n")
+    os.replace(temporary, path)
+
+
+def machine_url(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text or len(text) > 500 or any(ord(char) < 32 for char in text):
+        return None
+    parsed = urllib.parse.urlparse(text)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return None
+    return text
+
+
+def add_machine(name: object, url: object) -> tuple[int, dict]:
+    if not isinstance(name, str):
+        return 400, {"error": "Unknown machine"}
+    cleaned = " ".join(name.split())
+    if not cleaned or len(cleaned) > 80:
+        return 400, {"error": "Enter a machine name"}
+    target = machine_url(url)
+    if target is None:
+        return 400, {"error": "Enter a URL that starts with http:// or https://"}
+    with _LOCKS_GUARD:
+        machines = load_machines()
+        if any(item["name"].casefold() == cleaned.casefold() for item in machines):
+            return 409, {"error": "That machine is already listed"}
+        if len(machines) >= 30:
+            return 400, {"error": "Too many machines"}
+        machines.append({"name": cleaned, "url": target})
+        save_machines(machines)
+    return 200, {"machines": machines}
+
+
+def remove_machine(name: object) -> tuple[int, dict]:
+    if not isinstance(name, str) or not name.strip():
+        return 400, {"error": "Unknown machine"}
+    key = " ".join(name.split()).casefold()
+    with _LOCKS_GUARD:
+        machines = load_machines()
+        kept = [item for item in machines if item["name"].casefold() != key]
+        if len(kept) == len(machines):
+            return 404, {"error": "Machine not found"}
+        save_machines(kept)
+    return 200, {"machines": kept}
+
+
 def save_pins(pins: list[str]) -> None:
     path = pins_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -452,6 +539,8 @@ def _post_error(path: str) -> str:
         return "Unknown folder"
     if path == "/api/pins":
         return "Unknown pin"
+    if path == "/api/machines":
+        return "Unknown machine"
     return "Unknown lock"
 
 
@@ -635,7 +724,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/sessions":
-            self._send_json(200, {"groups": list_groups(), "pinned": load_pins()})
+            self._send_json(200, {"groups": list_groups(), "pinned": load_pins(), "machines": load_machines()})
             return
         if path in ("/", "/index.html"):
             self._send_file("index.html", "text/html; charset=utf-8")
@@ -676,6 +765,13 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/sessions/move":
             status, body = move_session(payload.get("id"), payload.get("cwd"))
+            self._send_json(status, body)
+            return
+        if path == "/api/machines":
+            if payload.get("remove") is True:
+                status, body = remove_machine(payload.get("name"))
+            else:
+                status, body = add_machine(payload.get("name"), payload.get("url"))
             self._send_json(status, body)
             return
         self._send_json(404, {"error": "Not found"})

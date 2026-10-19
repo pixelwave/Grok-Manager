@@ -66,6 +66,10 @@
         border-radius: 999px;
         padding: 0.2rem 0.5rem 0.15rem;
       }
+      .mark span {
+        display: inline-block;
+        transform: translate(1px, -1px);
+      }
       .version {
         font-size: 0.72rem;
         letter-spacing: 0.06em;
@@ -78,6 +82,49 @@
         font-size: 0.95rem;
       }
       .lede .machine { color: var(--accent); }
+      .machine-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 0.15rem 0.75rem;
+        margin: 0.45rem 0 0;
+      }
+      #extra-machines { display: contents; }
+      .extra-machine {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15rem;
+      }
+      .extra-machine a { color: var(--accent); text-decoration: none; }
+      .extra-machine a:hover, .extra-machine a:focus-visible { text-decoration: underline; }
+      button.machine-remove {
+        border: 0;
+        background: none;
+        padding: 0 0.1rem;
+        color: rgba(255, 255, 255, 0.5);
+        font: inherit;
+        font-size: 0.95rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+      button.machine-remove:hover, button.machine-remove:focus-visible { color: #fff; }
+      button.add-machines {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 45px;
+        height: 20px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        line-height: 0;
+        cursor: pointer;
+        transform: translateY(1px);
+      }
+      button.add-machines svg { display: block; width: 45px; height: 20px; }
+      button.add-machines:hover g, button.add-machines:focus-visible g { opacity: 1; }
       .tools { display: flex; flex-direction: column; align-items: flex-end; gap: 0.55rem; }
       button.fold-all {
         font: inherit;
@@ -426,7 +473,7 @@
         color: var(--muted);
         font-size: 0.82rem;
       }
-      .move-field select {
+      .move-field select, .move-field input {
         display: block;
         width: 100%;
         margin-top: 0.35rem;
@@ -438,6 +485,7 @@
         font: inherit;
         font-size: 0.92rem;
       }
+      .dialog .field-error { color: var(--danger); font-size: 0.85rem; }
       .dialog-back {
         position: fixed;
         inset: 0;
@@ -501,10 +549,14 @@
           <div class="brand">
             <span class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M9.27 15.29l7.978-5.897c.391-.29.95-.177 1.137.272.98 2.369.542 5.215-1.41 7.169-1.951 1.954-4.667 2.382-7.149 1.406l-2.711 1.257c3.889 2.661 8.611 2.003 11.562-.953 2.341-2.344 3.066-5.539 2.388-8.42l.006.007c-.983-4.232.242-5.924 2.75-9.383.06-.082.12-.164.179-.248l-3.301 3.305v-.01L9.267 15.292M7.623 16.723c-2.792-2.67-2.31-6.801.071-9.184 1.761-1.763 4.647-2.483 7.166-1.425l2.705-1.25a7.808 7.808 0 00-1.829-1A8.975 8.975 0 005.984 5.83c-2.533 2.536-3.33 6.436-1.962 9.764 1.022 2.487-.653 4.246-2.34 6.022-.599.63-1.199 1.259-1.682 1.925l7.62-6.815"/></svg></span>
             <h1><span class="grok">Grok</span> Manager</h1>
-            <span class="mark">Build</span>
+            <span class="mark"><span>Build</span></span>
             <span class="version">v__VERSION__</span>
           </div>
           <p class="lede">Sessions on this machine: <span class="machine">__HOSTNAME__</span></p>
+          <div class="machine-row">
+            <button class="add-machines" id="add-machines" type="button" aria-label="Add machine"><svg width="45" height="20" viewBox="0 0 45 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g opacity="0.3"><path d="M35 18.5V20H10V18.5H35ZM43.5 10C43.5 5.30558 39.6944 1.5 35 1.5H10C5.30558 1.5 1.5 5.30558 1.5 10C1.5 14.6944 5.30558 18.5 10 18.5V20L9.48535 19.9873C4.20167 19.7195 0 15.3502 0 10C0 4.47715 4.47715 4.02661e-08 10 0H35C40.5228 0 45 4.47715 45 10C45 15.3502 40.7983 19.7195 35.5146 19.9873L35 20V18.5C39.6944 18.5 43.5 14.6944 43.5 10Z" fill="white"/><path d="M31.1971 14H28.2397V5.27271H31.2568C32.1233 5.27271 32.8676 5.44742 33.4897 5.79685C34.1147 6.14344 34.5949 6.64202 34.9301 7.29259C35.2653 7.94316 35.4329 8.72157 35.4329 9.62782C35.4329 10.5369 35.2639 11.3182 34.9258 11.9716C34.5906 12.625 34.1062 13.1264 33.4727 13.4758C32.842 13.8253 32.0835 14 31.1971 14ZM29.8207 12.6321H31.1204C31.7284 12.6321 32.2355 12.5213 32.6417 12.2997C33.048 12.0753 33.3534 11.7415 33.5579 11.2983C33.7625 10.8523 33.8647 10.2954 33.8647 9.62782C33.8647 8.96021 33.7625 8.40623 33.5579 7.96589C33.3534 7.52271 33.0508 7.19174 32.6503 6.97299C32.2525 6.7514 31.7582 6.6406 31.1673 6.6406H29.8207V12.6321Z" fill="white"/><path d="M22.5018 14H19.5444V5.27271H22.5615C23.428 5.27271 24.1723 5.44742 24.7944 5.79685C25.4194 6.14344 25.8995 6.64202 26.2348 7.29259C26.57 7.94316 26.7376 8.72157 26.7376 9.62782C26.7376 10.5369 26.5686 11.3182 26.2305 11.9716C25.8953 12.625 25.4109 13.1264 24.7774 13.4758C24.1467 13.8253 23.3882 14 22.5018 14ZM21.1254 12.6321H22.4251C23.0331 12.6321 23.5402 12.5213 23.9464 12.2997C24.3527 12.0753 24.6581 11.7415 24.8626 11.2983C25.0672 10.8523 25.1694 10.2954 25.1694 9.62782C25.1694 8.96021 25.0672 8.40623 24.8626 7.96589C24.6581 7.52271 24.3555 7.19174 23.9549 6.97299C23.5572 6.7514 23.0629 6.6406 22.472 6.6406H21.1254V12.6321Z" fill="white"/><path d="M11.9814 14H10.2939L13.3664 5.27271H15.3181L18.3948 14H16.7073L14.3763 7.06248H14.3082L11.9814 14ZM12.0368 10.5781H16.6391V11.848H12.0368V10.5781Z" fill="white"/></g></svg></button>
+            <span id="extra-machines"></span>
+          </div>
         </div>
         <div class="tools">
           <button class="fold-all" id="fold-all" type="button">Collapse all</button>
@@ -539,6 +591,24 @@
       </div>
     </div>
 
+    <div class="dialog-back" id="machine-dialog" hidden>
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="machine-title">
+        <h3 id="machine-title">Add a machine</h3>
+        <p>The name links to that manager.</p>
+        <label class="move-field">Machine name
+          <input id="machine-name" type="text" maxlength="80" autocomplete="off" />
+        </label>
+        <label class="move-field">URL
+          <input id="machine-url" type="url" maxlength="500" placeholder="https://example:8090/" autocomplete="off" />
+        </label>
+        <p class="field-error" id="machine-error" hidden></p>
+        <div class="actions">
+          <button class="ghost" id="machine-cancel" type="button">Cancel</button>
+          <button class="confirm" id="machine-add" type="button">Add</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       const listEl = document.getElementById("list");
       const filterEl = document.getElementById("filter");
@@ -560,9 +630,18 @@
       const clearSelectionBtn = document.getElementById("clear-selection");
       const deleteSelectedBtn = document.getElementById("delete-selected");
       const foldAllBtn = document.getElementById("fold-all");
+      const extraMachinesEl = document.getElementById("extra-machines");
+      const addMachinesBtn = document.getElementById("add-machines");
+      const machineDialog = document.getElementById("machine-dialog");
+      const machineNameInput = document.getElementById("machine-name");
+      const machineUrlInput = document.getElementById("machine-url");
+      const machineError = document.getElementById("machine-error");
+      const machineCancel = document.getElementById("machine-cancel");
+      const machineAdd = document.getElementById("machine-add");
 
       let groups = [];
       let pinOrder = [];
+      let machines = [];
       let pending = [];
       let dialogMode = "delete";
       const selected = new Set();
@@ -1367,6 +1446,8 @@
         const data = await response.json();
         groups = Array.isArray(data.groups) ? data.groups : [];
         pinOrder = Array.isArray(data.pinned) ? data.pinned : [];
+        machines = Array.isArray(data.machines) ? data.machines : [];
+        renderMachines();
         const known = new Set();
         for (const group of groups) {
           for (const session of group.sessions) known.add(session.id);
@@ -1390,8 +1471,101 @@
       dialogEl.addEventListener("click", (event) => {
         if (event.target === dialogEl) closeDialog();
       });
+      function renderMachines() {
+        const listed = machines.filter((machine) => machine && typeof machine.name === "string" && typeof machine.url === "string");
+        extraMachinesEl.replaceChildren();
+        for (const machine of listed) {
+          if (!machine || typeof machine.name !== "string" || typeof machine.url !== "string") continue;
+          const wrap = document.createElement("span");
+          wrap.className = "extra-machine";
+          const link = document.createElement("a");
+          link.href = machine.url;
+          link.textContent = machine.name;
+          link.rel = "noreferrer";
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.className = "machine-remove";
+          remove.textContent = "×";
+          remove.title = "Remove";
+          remove.setAttribute("aria-label", "Remove " + machine.name);
+          remove.addEventListener("click", () => removeMachine(machine.name));
+          wrap.append(link, remove);
+          extraMachinesEl.append(wrap);
+        }
+      }
+
+      function showMachineError(message) {
+        machineError.hidden = !message;
+        machineError.textContent = message || "";
+      }
+
+      function closeMachineDialog() {
+        machineDialog.hidden = true;
+        machineAdd.disabled = false;
+      }
+
+      function openMachineDialog() {
+        machineNameInput.value = "";
+        machineUrlInput.value = "";
+        showMachineError("");
+        machineDialog.hidden = false;
+        machineNameInput.focus();
+      }
+
+      async function saveMachines(payload) {
+        let response;
+        try {
+          response = await fetch("/api/machines", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } catch {
+          return { ok: false, error: "Could not reach Grok Manager." };
+        }
+        let body = {};
+        try { body = await response.json(); } catch { /* keep empty */ }
+        if (!response.ok) return { ok: false, error: (body && body.error) || "Could not update machines." };
+        machines = Array.isArray(body.machines) ? body.machines : [];
+        renderMachines();
+        return { ok: true };
+      }
+
+      async function removeMachine(name) {
+        const result = await saveMachines({ name: name, remove: true });
+        if (!result.ok) showError(result.error);
+      }
+
+      addMachinesBtn.addEventListener("click", openMachineDialog);
+      machineCancel.addEventListener("click", closeMachineDialog);
+      machineDialog.addEventListener("click", (event) => {
+        if (event.target === machineDialog) closeMachineDialog();
+      });
+      machineAdd.addEventListener("click", async () => {
+        showMachineError("");
+        machineAdd.disabled = true;
+        const result = await saveMachines({
+          name: machineNameInput.value,
+          url: machineUrlInput.value,
+        });
+        machineAdd.disabled = false;
+        if (!result.ok) {
+          showMachineError(result.error);
+          return;
+        }
+        closeMachineDialog();
+      });
+      machineUrlInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") machineAdd.click();
+      });
+      machineNameInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") machineUrlInput.focus();
+      });
+
       document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && !dialogEl.hidden) closeDialog();
+        if (event.key !== "Escape") return;
+        if (!dialogEl.hidden) closeDialog();
+        else if (!machineDialog.hidden) closeMachineDialog();
       });
 
       load();

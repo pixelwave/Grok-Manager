@@ -22,12 +22,18 @@ The page reads `~/.grok/sessions` on the computer where it runs. Nothing is uplo
 - The pin icon copies a session into an accent panel at the top. The original stays in its folder.
 - Drag the handle on a pinned row to reorder it. The new order is kept on this machine.
 - The line under the title names this computer, in the accent color.
+- **ADD** saves another machine by name and URL. The name links to that manager, and you can remove it again.
 
 <img width="2298" height="1228" alt="Mask group" src="https://github.com/user-attachments/assets/839300ae-1793-41b9-bf78-79187f5c92a5" />
 
 ## Releases
 
-Current release: **V1.3**
+Current release: **V1.4**
+
+### V1.4 — 19 October 2026
+
+- Add another machine by name and URL. The name is a link on the line under this computer.
+- Remove a machine from that line. The list stays on this computer.
 
 ### V1.3 — 19 October 2026
 
@@ -72,8 +78,9 @@ The app listens on `127.0.0.1:18090`. Open that address in a browser.
 - Session transcripts, titles, and ids
 - `locks.json`, the list of sessions and folders you locked
 - `pins.json`, the pinned sessions and their order
+- `machines.json`, the other machines you added
 - The search index and dashboard database Grok already keeps
 
-Do not commit `locks.json` or `pins.json`. Both are listed in `.gitignore`.
+Do not commit `locks.json`, `pins.json`, or `machines.json`. They are listed in `.gitignore`.
 
 Deleting a session removes its directory. That cannot be undone.
