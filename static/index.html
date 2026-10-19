@@ -77,7 +77,7 @@
         color: var(--muted);
         font-size: 0.95rem;
       }
-      .lede a { color: var(--fg); }
+      .lede .machine { color: var(--accent); }
       .tools { display: flex; flex-direction: column; align-items: flex-end; gap: 0.55rem; }
       button.fold-all {
         font: inherit;
@@ -250,14 +250,25 @@
         z-index: 2;
       }
       section.pinned li.row { background: var(--panel); }
-      section.pinned ul.rows.reordering { overflow: visible; z-index: 1; }
       section.pinned ul.rows.reordering li.row {
         transition: transform 160ms cubic-bezier(0.2, 0, 0, 1), box-shadow 160ms ease;
       }
-      section.pinned ul.rows.reordering li.row.dragging {
-        z-index: 3;
+      section.pinned li.drag-slot {
+        visibility: hidden;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+      li.row.dragging {
+        position: fixed;
+        z-index: 30;
+        margin: 0;
+        border: 0;
+        border-radius: 14px;
         background: #1e1e24;
         box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
+        pointer-events: none;
         transition: none;
       }
       @media (prefers-reduced-motion: reduce) {
@@ -289,9 +300,9 @@
         content: "";
         height: 1px;
         flex: 1;
-        background: var(--line);
       }
-      .separator::before { background: linear-gradient(90deg, var(--accent), var(--line)); }
+      .separator::before { background: linear-gradient(90deg, var(--accent), transparent); }
+      .separator::after { background: linear-gradient(90deg, transparent, var(--accent)); }
       .pill {
         display: inline-flex;
         align-items: center;
@@ -493,7 +504,7 @@
             <span class="mark">Build</span>
             <span class="version">v__VERSION__</span>
           </div>
-          <p class="lede">Sessions on this machine, grouped by folder. <a id="hub" href="/">Hub</a></p>
+          <p class="lede">Sessions on this machine: <span class="machine">__HOSTNAME__</span></p>
         </div>
         <div class="tools">
           <button class="fold-all" id="fold-all" type="button">Collapse all</button>
@@ -549,9 +560,6 @@
       const clearSelectionBtn = document.getElementById("clear-selection");
       const deleteSelectedBtn = document.getElementById("delete-selected");
       const foldAllBtn = document.getElementById("fold-all");
-      const hub = document.getElementById("hub");
-
-      hub.href = location.protocol + "//" + location.hostname + ":8000/";
 
       let groups = [];
       let pinOrder = [];
@@ -669,25 +677,34 @@
           event.preventDefault();
           const list = li.parentElement;
           const startOrder = rowOrder(list);
-          const grabOffset = event.clientY - (list.getBoundingClientRect().top + li.offsetTop);
+          const bounds = li.getBoundingClientRect();
+          const grabOffset = event.clientY - bounds.top;
+          const placeholder = document.createElement("li");
+          placeholder.className = "row drag-slot";
+          placeholder.dataset.id = li.dataset.id;
+          placeholder.style.height = bounds.height + "px";
           list.classList.add("reordering");
+          list.insertBefore(placeholder, li);
           li.classList.add("dragging");
+          li.style.left = bounds.left + "px";
+          li.style.top = bounds.top + "px";
+          li.style.width = bounds.width + "px";
           li.style.transform = "scale(1.012)";
+          document.body.append(li);
           const follow = (clientY) => {
-            const dy = clientY - grabOffset - (list.getBoundingClientRect().top + li.offsetTop);
-            li.style.transform = "translateY(" + dy + "px) scale(1.012)";
+            li.style.top = (clientY - grabOffset) + "px";
           };
           const move = (ev) => {
             if (ev.pointerId !== event.pointerId) return;
             const pointer = ev.clientY - list.getBoundingClientRect().top;
             const target = [...list.querySelectorAll("li.row")].find((row) => {
-              if (row === li) return false;
+              if (row === placeholder) return false;
               return pointer < row.offsetTop + row.offsetHeight / 2;
             });
             const before = rowOrder(list);
             const play = slideRows(list);
-            if (target) list.insertBefore(li, target);
-            else list.append(li);
+            if (target) list.insertBefore(placeholder, target);
+            else list.append(placeholder);
             if (rowOrder(list) !== before) play();
             follow(ev.clientY);
           };
@@ -696,13 +713,24 @@
             window.removeEventListener("pointermove", move);
             window.removeEventListener("pointerup", finish);
             window.removeEventListener("pointercancel", finish);
-            li.style.transition = "none";
-            li.getBoundingClientRect();
-            li.classList.remove("dragging");
-            li.style.transition = "";
-            li.style.transform = "";
-            settleDrag(list);
-            if (rowOrder(list) !== startOrder) commitPinOrder(list);
+            const dest = placeholder.getBoundingClientRect();
+            const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const land = () => {
+              li.classList.remove("dragging");
+              li.removeAttribute("style");
+              placeholder.replaceWith(li);
+              settleDrag(list);
+              if (rowOrder(list) !== startOrder) commitPinOrder(list);
+            };
+            if (reduced) {
+              land();
+              return;
+            }
+            li.style.transition = "top 160ms cubic-bezier(0.2, 0, 0, 1), left 160ms cubic-bezier(0.2, 0, 0, 1), transform 160ms cubic-bezier(0.2, 0, 0, 1)";
+            li.style.left = dest.left + "px";
+            li.style.top = dest.top + "px";
+            li.style.transform = "none";
+            window.setTimeout(land, 170);
           };
           window.addEventListener("pointermove", move);
           window.addEventListener("pointerup", finish);

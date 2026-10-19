@@ -7,10 +7,12 @@ Bind address is localhost; nginx publishes it on the LAN.
 
 from __future__ import annotations
 
+import html
 import json
 import os
 import re
 import shutil
+import socket
 import sqlite3
 import subprocess
 import sys
@@ -32,6 +34,11 @@ def app_version() -> str:
     except OSError:
         return "0"
     return version or "0"
+
+
+def machine_name() -> str:
+    name = socket.gethostname().split(".")[0].strip()
+    return html.escape(name or "this machine")
 _LOCKS_GUARD = threading.Lock()
 
 
@@ -713,6 +720,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         if name == "index.html":
             body = body.replace(b"__VERSION__", app_version().encode("utf-8"))
+            body = body.replace(b"__HOSTNAME__", machine_name().encode("utf-8"))
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Cache-Control", "no-store")

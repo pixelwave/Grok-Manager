@@ -21,12 +21,19 @@ The page reads `~/.grok/sessions` on the computer where it runs. Nothing is uplo
 - **Collapse all**, at the top of the page, folds every visible folder. The same control expands them again.
 - The pin icon copies a session into an accent panel at the top. The original stays in its folder.
 - Drag the handle on a pinned row to reorder it. The new order is kept on this machine.
+- The line under the title names this computer, in the accent color.
 
 <img width="2298" height="1228" alt="Mask group" src="https://github.com/user-attachments/assets/839300ae-1793-41b9-bf78-79187f5c92a5" />
 
 ## Releases
 
-Current release: **V1.2**
+Current release: **V1.3**
+
+### V1.3 — 19 October 2026
+
+- The line under the title shows this machine’s name in the accent color.
+- The **All sessions** lines fade from the accent color to clear, with the clear end beside the label.
+- While a pin is dragged, the rounded card clips the other rows. Only the held row lifts out.
 
 ### V1.2 — 12 October 2026
 
