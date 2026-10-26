@@ -1,5 +1,3 @@
-## ❤️ Support
-
 If you find my work useful, please consider supporting:
 
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-pixelWAVE-ea4aaa?logo=github-sponsors&logoColor=white)](https://donate.p-wave.de/)
