@@ -62,7 +62,22 @@ func InstallService(port int) error {
 		return err
 	}
 	_ = systemctl("daemon-reload")
-	return systemctl("enable", "--now", "grok-manager.service")
+	if err := systemctl("enable", "grok-manager.service"); err != nil {
+		return err
+	}
+	// enable --now leaves an already running service on its old process.
+	if serviceActive() {
+		return systemctl("restart", "grok-manager.service")
+	}
+	return systemctl("start", "grok-manager.service")
+}
+
+func serviceActive() bool {
+	args := []string{"is-active", "--quiet", "grok-manager.service"}
+	if os.Geteuid() != 0 {
+		args = append([]string{"--user"}, args...)
+	}
+	return exec.Command("systemctl", args...).Run() == nil
 }
 
 func StartService() error {
