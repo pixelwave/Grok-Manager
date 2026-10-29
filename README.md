@@ -33,7 +33,7 @@ The page reads `~/.grok/sessions` on the computer where it runs. Nothing is uplo
 
 ## Releases
 
-Current version: **26.10.29.5**. Notes for each version are in [CHANGELOG.md](CHANGELOG.md).
+Current version: **26.10.29.6**. Notes for each version are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Install
 
@@ -86,19 +86,13 @@ GitHub Pages for this repo should serve the `docs/` folder so those short URLs r
 
 ## Run from a checkout
 
-Go 1.24 or newer:
+Build the checkout and restart the service on this machine:
 
 ```bash
-go run ./cmd/grok-manager
+./scripts/local-install.sh
 ```
 
-The Python server is still here for development:
-
-```bash
-python3 server.py
-```
-
-The app listens on port 18090. Open `http://127.0.0.1:18090/` in a browser.
+That does not publish a release. `grok-manager update` installs a GitHub release only when that release is newer than the running build, so this local build stays in place. Tag a release when the change is ready for other machines. Go 1.24 or newer is required. The page listens on port 18090.
 
 ## What stays on your machine
 

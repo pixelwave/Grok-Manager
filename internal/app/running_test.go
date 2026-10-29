@@ -1,9 +1,19 @@
 package app
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestSessionsRootWithoutHome(t *testing.T) {
+	t.Setenv("HOME", "")
+	t.Setenv("GROK_SESSIONS_DIR", "")
+	root := sessionsRoot()
+	if root == "" || !filepath.IsAbs(root) || !strings.HasSuffix(root, string(filepath.Separator)+filepath.Join(".grok", "sessions")) {
+		t.Fatal("sessions root")
+	}
+}
 
 func TestStatusText(t *testing.T) {
 	setup(t)

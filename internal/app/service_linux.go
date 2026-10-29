@@ -24,19 +24,23 @@ func unitText(exe string, port int) string {
 	if os.Geteuid() == 0 {
 		wanted = "multi-user.target"
 	}
+	home := ""
+	if dir := homeDir(); dir != "" {
+		home = "Environment=HOME=" + dir + "\n"
+	}
 	return fmt.Sprintf(`[Unit]
 Description=Grok Manager
 After=network.target
 
 [Service]
 ExecStart=%s
-Environment=GROK_MANAGER_PORT=%d
+%sEnvironment=GROK_MANAGER_PORT=%d
 Restart=on-failure
 RestartSec=2
 
 [Install]
 WantedBy=%s
-`, exe, port, wanted)
+`, exe, home, port, wanted)
 }
 
 func systemctl(args ...string) error {

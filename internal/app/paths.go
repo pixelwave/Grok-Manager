@@ -2,9 +2,21 @@ package app
 
 import (
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 )
+
+// homeDir is the account home. A system service often has no HOME variable.
+func homeDir() string {
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		return home
+	}
+	if current, err := user.Current(); err == nil && current.HomeDir != "" {
+		return current.HomeDir
+	}
+	return ""
+}
 
 // ConfigDir holds locks, pins, machines, and the chosen port.
 // It is outside the install directory so an update can replace the binary.
@@ -17,8 +29,8 @@ func ConfigDir() string {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
 		return filepath.Join(xdg, "grok-manager")
 	}
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
+	home := homeDir()
+	if home == "" {
 		return filepath.Join(".", ".config", "grok-manager")
 	}
 	return filepath.Join(home, ".config", "grok-manager")

@@ -52,24 +52,21 @@ func sessionsRoot() string {
 	if value := os.Getenv("GROK_SESSIONS_DIR"); value != "" {
 		return value
 	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".grok", "sessions")
+	return filepath.Join(homeDir(), ".grok", "sessions")
 }
 
 func activeSessionsPath() string {
 	if value := os.Getenv("GROK_ACTIVE_SESSIONS"); value != "" {
 		return value
 	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".grok", "active_sessions.json")
+	return filepath.Join(homeDir(), ".grok", "active_sessions.json")
 }
 
 func memoryWorkspacesRoot() string {
 	if value := os.Getenv("GROK_MEMORY_WORKSPACES"); value != "" {
 		return value
 	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".grok", "memory-v2", "workspaces")
+	return filepath.Join(homeDir(), ".grok", "memory-v2", "workspaces")
 }
 
 func pyQuote(value string) string {
@@ -534,8 +531,7 @@ func sessionLocked(sessionID, cwd string) bool {
 }
 
 func usingRealStore() bool {
-	home, _ := os.UserHomeDir()
-	real := realPath(filepath.Join(home, ".grok", "sessions"))
+	real := realPath(filepath.Join(homeDir(), ".grok", "sessions"))
 	current := realPath(sessionsRoot())
 	return current == real
 }
@@ -921,8 +917,7 @@ func MoveSession(sessionID, target string) (int, map[string]any) {
 	setIndex(filepath.Join(sessionsRoot(), "session_search.sqlite"), "session_docs", sessionID, target, false)
 	dashboard := os.Getenv("GROK_DASHBOARD_DB")
 	if dashboard == "" && usingRealStore() {
-		home, _ := os.UserHomeDir()
-		dashboard = filepath.Join(home, ".grok", "dashboard", "workspace.db")
+		dashboard = filepath.Join(homeDir(), ".grok", "dashboard", "workspace.db")
 	}
 	setIndex(dashboard, "members", sessionID, target, false)
 	return 200, map[string]any{"ok": true, "cwd": target}
