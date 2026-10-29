@@ -2,6 +2,10 @@
 
 A release number is the day it is published, `YY.MM.DD`. 28 October 2026 is `26.10.28`. Another release that same day is `26.10.28.2`, then `26.10.28.3`. The next day starts again at three numbers, `26.10.29`.
 
+## 26.10.29.8 — 29 October 2026
+
+- On Windows, the installer adds `grok-manager` to the user Path. Open a new terminal, then run `grok-manager status`.
+
 ## 26.10.29.7 — 29 October 2026
 
 - The version number in the header links to the GitHub repository. It fades to white on hover, with no underline.

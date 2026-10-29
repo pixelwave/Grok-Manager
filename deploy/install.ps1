@@ -42,3 +42,4 @@ try {
   Remove-Item -Recurse -Force $tmp
 }
 & $dest install -p $port
+Write-Host "Open a new terminal, then run: grok-manager status"

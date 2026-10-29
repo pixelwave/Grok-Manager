@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/pixelwave/grok-manager/internal/app"
 )
 
-var Version = "26.10.29.7"
+var Version = "26.10.29.8"
 
 func version() string {
 	body, err := os.ReadFile("VERSION")
@@ -75,6 +76,9 @@ func main() {
 			}
 			fmt.Printf("Grok Manager is listening on port %d\n", *port)
 			fmt.Printf("For more info use \"grok-manager status\"\n")
+			if runtime.GOOS == "windows" {
+				fmt.Printf("Open a new terminal so the grok-manager command is available.\n")
+			}
 			return
 		case "uninstall":
 			purge := false

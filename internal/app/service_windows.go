@@ -8,6 +8,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+	"unsafe"
+
+	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 func startupFile() string {
@@ -27,7 +31,80 @@ func InstallService(port int) error {
 	if err := os.WriteFile(startupFile(), []byte(body), 0o644); err != nil {
 		return err
 	}
+	if err := ensureOnUserPath(filepath.Dir(exe)); err != nil {
+		return err
+	}
 	return StartService()
+}
+
+func ensureOnUserPath(dir string) error {
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return err
+	}
+	defer key.Close()
+	current, kind, err := key.GetStringValue("Path")
+	if err == registry.ErrNotExist {
+		current, kind, err = "", registry.EXPAND_SZ, nil
+	}
+	if err != nil {
+		return err
+	}
+	next := pathListAdd(current, dir)
+	if next == current {
+		return nil
+	}
+	if kind == registry.SZ {
+		err = key.SetStringValue("Path", next)
+	} else {
+		err = key.SetExpandStringValue("Path", next)
+	}
+	if err != nil {
+		return err
+	}
+	notifyEnvironment()
+	return nil
+}
+
+func removeFromUserPath(dir string) error {
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return err
+	}
+	defer key.Close()
+	current, kind, err := key.GetStringValue("Path")
+	if err == registry.ErrNotExist {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	next := pathListRemove(current, dir)
+	if next == current {
+		return nil
+	}
+	if kind == registry.SZ {
+		err = key.SetStringValue("Path", next)
+	} else {
+		err = key.SetExpandStringValue("Path", next)
+	}
+	if err != nil {
+		return err
+	}
+	notifyEnvironment()
+	return nil
+}
+
+func notifyEnvironment() {
+	env, err := windows.UTF16PtrFromString("Environment")
+	if err != nil {
+		return
+	}
+	const hwndBroadcast = 0xffff
+	const wmSettingChange = 0x001A
+	const smtoAbortIfHung = 0x0002
+	proc := windows.NewLazySystemDLL("user32.dll").NewProc("SendMessageTimeoutW")
+	_, _, _ = proc.Call(hwndBroadcast, wmSettingChange, 0, uintptr(unsafe.Pointer(env)), smtoAbortIfHung, 5000, 0)
 }
 
 func StartService() error {
@@ -60,6 +137,9 @@ func RestartAfterUpdate() {
 func Uninstall(purge bool) error {
 	_ = StopService()
 	_ = os.Remove(startupFile())
+	if exe, err := os.Executable(); err == nil {
+		_ = removeFromUserPath(filepath.Dir(exe))
+	}
 	if purge {
 		_ = os.RemoveAll(ConfigDir())
 	}
