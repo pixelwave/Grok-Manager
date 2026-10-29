@@ -83,3 +83,13 @@ Go 1.24 or newer. This builds and restarts the local service. It does not publis
 ## On this machine
 
 Locks, pins, and saved machines stay in the config directory. Do not commit `locks.json`, `pins.json`, or `machines.json`. Deleting a session removes its directory.
+
+## License
+
+Grok Manager is free software under the GNU Affero General Public License, version 3 only. Copyright (C) 2026 Denny Moritz. See `LICENSE` and `COPYRIGHT`.
+
+You can download it and run it for yourself. If you modify Grok Manager and let other people use that modified version over a network, the AGPL requires you to offer them the corresponding source.
+
+Session transcripts, locks, pins, and saved machines are your data. The license applies to the program, not to that data.
+
+The corresponding source for an official release is the git tag that built it.
