@@ -297,7 +297,7 @@ class ScannerTests(unittest.TestCase):
         self.assertEqual(server.load_pins(), [])
 
     def test_app_version_is_numbered(self):
-        self.assertRegex(server.app_version(), r"^\d+\.\d+$")
+        self.assertRegex(server.app_version(), r"^\d+\.\d+\.\d+(\.\d+)?$")
 
     def test_added_machines_persist_and_reject_bad_urls(self):
         self.assertEqual(server.load_machines(), [])

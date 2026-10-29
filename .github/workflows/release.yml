@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "[0-9][0-9].*"
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+      - name: Build release assets
+        run: |
+          set -euo pipefail
+          version=$(tr -d '[:space:]' < VERSION)
+          mkdir -p dist
+          for pair in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            goos=${pair%/*}
+            goarch=${pair#*/}
+            out="grok-manager_${goos}_${goarch}"
+            if [ "$goos" = "windows" ]; then out="${out}.exe"; fi
+            CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -ldflags "-X main.Version=${version}" -o "dist/${out}" ./cmd/grok-manager
+          done
+          cp deploy/install.sh deploy/uninstall.sh deploy/install.ps1 deploy/uninstall.ps1 dist/
+          cd dist
+          sha256sum grok-manager_* > SHA256SUMS
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

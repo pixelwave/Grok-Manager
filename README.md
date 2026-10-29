@@ -33,7 +33,15 @@ The page reads `~/.grok/sessions` on the computer where it runs. Nothing is uplo
 
 ## Releases
 
-Current release: **V1.4**
+A release number is the day it is published, `YY.MM.DD`. 28 October 2026 is `26.10.28`. Another release that same day is `26.10.28.2`, then `26.10.28.3`. The next day starts again at three numbers, `26.10.29`.
+
+Current version: **26.10.29**
+
+### 26.10.29 — 29 October 2026
+
+- Release numbers follow the publish date.
+- Install from one line on Linux, Mac, and Windows. `grok-manager up`, `down`, `status`, and `update` control that install.
+- Managers on the same network appear as links. A saved machine stays in the list.
 
 ### V1.4 — 19 October 2026
 
@@ -66,17 +74,70 @@ Current release: **V1.4**
 - Copy `grok --resume <session-id>` from a session id, and `cd <path>` from a project path.
 - Mark a session that is still open as **Session Active**.
 
-## Run
+## Install
 
-Python 3.11 or newer. No extra packages.
+Linux and Mac:
+
+```bash
+curl -fsSL https://pixelwave.github.io/grok-manager/install.sh | bash
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://pixelwave.github.io/grok-manager/install.ps1 | iex
+```
+
+The installer picks the binary for this machine. An unsupported system stops with a short message. The page listens on port 18090. Choose another port with `-p`:
+
+```bash
+curl -fsSL https://pixelwave.github.io/grok-manager/install.sh | bash -s -- -p 6969
+```
+
+On Windows, pass the port as:
+
+```powershell
+& ([scriptblock]::Create((irm https://pixelwave.github.io/grok-manager/install.ps1))) -p 6969
+```
+
+A normal account installs a user service and reads that account’s Grok sessions. Root does the same for root’s sessions. The command is placed on `/usr/local/bin` for root and on `~/.local/bin` for anyone else. Add `~/.local/bin` to `PATH` when the shell does not already search it.
+
+```bash
+grok-manager up
+grok-manager down
+grok-manager status
+grok-manager update
+```
+
+`status` prints the version, whether the page is running, and the port. `update` installs the latest release and removes the previous binary. The page shows **Update available** when a newer release exists. One click updates that machine.
+
+Remove it again with the matching uninstaller. Add `--purge` to delete the saved locks, pins, and machines too.
+
+```bash
+curl -fsSL https://pixelwave.github.io/grok-manager/uninstall.sh | bash
+```
+
+```powershell
+irm https://pixelwave.github.io/grok-manager/uninstall.ps1 | iex
+```
+
+GitHub Pages for this repo should serve the `docs/` folder so those short URLs resolve. The pages scripts download the installers attached to the latest release.
+
+## Run from a checkout
+
+Go 1.24 or newer:
+
+```bash
+go run ./cmd/grok-manager
+```
+
+The Python server is still here for development:
 
 ```bash
 python3 server.py
 ```
 
-The app listens on `127.0.0.1:18090`. Open that address in a browser.
-
-`install.sh` adds an nginx site on port 8090 and a systemd service named `grok-manager`. It needs root.
+The app listens on port 18090. Open `http://127.0.0.1:18090/` in a browser.
 
 ## What stays on your machine
 

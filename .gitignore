@@ -4,3 +4,4 @@ locks.json
 pins.json
 machines.json
 *.tmp
+.DS_Store
