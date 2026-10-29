@@ -2,6 +2,10 @@
 
 A release number is the day it is published, `YY.MM.DD`. 28 October 2026 is `26.10.28`. Another release that same day is `26.10.28.2`, then `26.10.28.3`. The next day starts again at three numbers, `26.10.29`.
 
+## 26.10.29.3 — 29 October 2026
+
+- After install, the command prints `For more info use "grok-manager status"`.
+
 ## 26.10.29.2 — 29 October 2026
 
 - `grok-manager status` prints the GROK banner with the version, host name, address, and port.

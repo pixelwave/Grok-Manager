@@ -10,7 +10,7 @@ import (
 	"github.com/pixelwave/grok-manager/internal/app"
 )
 
-var Version = "26.10.29.2"
+var Version = "26.10.29.3"
 
 func version() string {
 	body, err := os.ReadFile("VERSION")
@@ -74,6 +74,7 @@ func main() {
 				os.Exit(1)
 			}
 			fmt.Printf("Grok Manager is listening on port %d\n", *port)
+			fmt.Printf("For more info use \"grok-manager status\"\n")
 			return
 		case "uninstall":
 			purge := false
