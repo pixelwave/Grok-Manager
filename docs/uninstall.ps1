@@ -6,4 +6,6 @@ if ($env:OS -ne "Windows_NT") {
   exit 1
 }
 $response = Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/pixelwave/Grok-Manager/releases/latest/download/uninstall.ps1"
-& ([scriptblock]::Create($response.Content)) @args
+$text = $response.Content
+if ($text -is [byte[]]) { $text = [System.Text.Encoding]::UTF8.GetString($text) }
+& ([scriptblock]::Create([string]$text)) @args
