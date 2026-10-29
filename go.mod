@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/grandcat/zeroconf v1.0.0
-	golang.org/x/sys v0.30.0
+	golang.org/x/sys v0.33.0
 	modernc.org/sqlite v1.34.5
 )
 
@@ -16,8 +16,8 @@ require (
 	github.com/miekg/dns v1.1.27 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
-	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
+	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
 	modernc.org/libc v1.55.3 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
