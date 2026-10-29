@@ -27,7 +27,9 @@ jobs:
             goarch=${pair#*/}
             out="grok-manager_${goos}_${goarch}"
             if [ "$goos" = "windows" ]; then out="${out}.exe"; fi
-            CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -ldflags "-X main.Version=${version}" -o "dist/${out}" ./cmd/grok-manager
+            ldflags="-X main.Version=${version}"
+            if [ "$goos" = "windows" ]; then ldflags="$ldflags -H windowsgui"; fi
+            CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -ldflags "$ldflags" -o "dist/${out}" ./cmd/grok-manager
           done
           cp deploy/install.sh deploy/uninstall.sh deploy/install.ps1 deploy/uninstall.ps1 dist/
           cd dist

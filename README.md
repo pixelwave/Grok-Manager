@@ -23,7 +23,7 @@ A local page for the Grok sessions on one machine, grouped by project folder. Yo
 
 ## Releases
 
-Current version: **26.10.29.11**. A release number is the day it is published, `YY.MM.DD`. Notes are in [CHANGELOG.md](CHANGELOG.md).
+Current version: **26.10.29.12**. A release number is the day it is published, `YY.MM.DD`. Notes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Install
 

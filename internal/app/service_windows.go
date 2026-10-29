@@ -21,6 +21,10 @@ func startupFile() string {
 	return filepath.Join(app, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "grok-manager.cmd")
 }
 
+func startupLink() string {
+	return filepath.Join(filepath.Dir(startupFile()), "Grok Manager.lnk")
+}
+
 func InstallService(port int) error {
 	if port <= 0 || port > 65535 {
 		return fmt.Errorf("invalid port")
@@ -29,13 +33,9 @@ func InstallService(port int) error {
 	if err != nil {
 		return err
 	}
-	_ = os.Remove(startupFile())
+	removeOldLaunchers(exe)
 	removeLogonTask()
-	launcher, err := writeHiddenLauncher(exe)
-	if err != nil {
-		return err
-	}
-	if err := setStartupApp(launcher, true); err != nil {
+	if err := setStartupApp(exe, true); err != nil {
 		return err
 	}
 	if err := ensureOnUserPath(filepath.Dir(exe)); err != nil {
@@ -44,16 +44,19 @@ func InstallService(port int) error {
 	return startHidden(exe)
 }
 
-func setStartupApp(launcher string, enabled bool) error {
+func setStartupApp(exe string, enabled bool) error {
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE)
 	if err != nil {
 		return err
 	}
 	defer key.Close()
-	command := fmt.Sprintf("powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"%s\"", launcher)
-	if err := key.SetStringValue("Grok Manager", command); err != nil {
+	if err := key.SetStringValue("Grok Manager", startupCommand(exe)); err != nil {
 		return err
 	}
+	return setStartupApproved(enabled)
+}
+
+func setStartupApproved(enabled bool) error {
 	approved, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`, registry.SET_VALUE)
 	if err != nil {
 		return nil
@@ -64,6 +67,26 @@ func setStartupApp(launcher string, enabled bool) error {
 		flag = 3
 	}
 	return approved.SetBinaryValue("Grok Manager", []byte{flag, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+}
+
+// MigrateStartupApp points an older PowerShell sign-in command at this exe.
+// Task Manager lists that Run entry as Grok Manager. The enabled flag is kept.
+func MigrateStartupApp() {
+	exe, err := os.Executable()
+	if err != nil {
+		return
+	}
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return
+	}
+	defer key.Close()
+	current, _, err := key.GetStringValue("Grok Manager")
+	if err != nil || !startupValueNeedsExe(current) {
+		return
+	}
+	_ = key.SetStringValue("Grok Manager", startupCommand(exe))
+	removeOldLaunchers(exe)
 }
 
 func removeStartupApp() {
@@ -79,13 +102,15 @@ func removeStartupApp() {
 	}
 }
 
-func writeHiddenLauncher(exe string) (string, error) {
-	path := filepath.Join(filepath.Dir(exe), "start-hidden.ps1")
-	body := fmt.Sprintf("$psi = New-Object System.Diagnostics.ProcessStartInfo\r\n$psi.FileName = '%s'\r\n$psi.UseShellExecute = $false\r\n$psi.CreateNoWindow = $true\r\n[void][System.Diagnostics.Process]::Start($psi)\r\n", strings.ReplaceAll(exe, "'", "''"))
-	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
-		return "", err
+func removeOldLaunchers(exe string) {
+	_ = os.Remove(startupFile())
+	_ = os.Remove(startupLink())
+	_ = os.Remove(filepath.Join(filepath.Dir(exe), "start-hidden.ps1"))
+	approved, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder`, registry.SET_VALUE)
+	if err == nil {
+		_ = approved.DeleteValue("Grok Manager.lnk")
+		approved.Close()
 	}
-	return path, nil
 }
 
 func startHidden(exe string) error {
@@ -183,8 +208,7 @@ func StartService() error {
 	if err != nil {
 		return err
 	}
-	launcher := filepath.Join(filepath.Dir(exe), "start-hidden.ps1")
-	if err := setStartupApp(launcher, true); err != nil {
+	if err := setStartupApp(exe, true); err != nil {
 		return err
 	}
 	return startHidden(exe)
@@ -197,7 +221,7 @@ func detachedProcess() *syscall.SysProcAttr {
 func StopService() error {
 	exe, err := os.Executable()
 	if err == nil {
-		_ = setStartupApp(filepath.Join(filepath.Dir(exe), "start-hidden.ps1"), false)
+		_ = setStartupApp(exe, false)
 	}
 	_ = exec.Command("taskkill", "/IM", "grok-manager.exe", "/F").Run()
 	return nil
@@ -215,10 +239,9 @@ func Uninstall(purge bool) error {
 	_ = StopService()
 	removeLogonTask()
 	removeStartupApp()
-	_ = os.Remove(startupFile())
 	if exe, err := os.Executable(); err == nil {
+		removeOldLaunchers(exe)
 		_ = removeFromUserPath(filepath.Dir(exe))
-		_ = os.Remove(filepath.Join(filepath.Dir(exe), "start-hidden.ps1"))
 	}
 	if purge {
 		_ = os.RemoveAll(ConfigDir())

@@ -2,4 +2,8 @@
 
 package app
 
+func EnableCLIConsole() {}
+
+func MigrateStartupApp() {}
+
 func HideServerConsole() {}
