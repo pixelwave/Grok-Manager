@@ -10,7 +10,7 @@ import (
 	"github.com/pixelwave/grok-manager/internal/app"
 )
 
-var Version = "26.10.29.6"
+var Version = "26.10.29.7"
 
 func version() string {
 	body, err := os.ReadFile("VERSION")

@@ -33,7 +33,7 @@ The page reads `~/.grok/sessions` on the computer where it runs. Nothing is uplo
 
 ## Releases
 
-Current version: **26.10.29.6**. Notes for each version are in [CHANGELOG.md](CHANGELOG.md).
+Current version: **26.10.29.7**. Notes for each version are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Install
 
