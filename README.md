@@ -72,6 +72,8 @@ grok-manager update
 
 `status` prints the version, host name, and URL. `update` installs the latest release and removes the previous binary. The page shows **Update available** when a newer release exists. One click updates that machine.
 
+<img width="515" height="310" alt="Screenshot 2026-10-29 at 08 22 10" src="https://github.com/user-attachments/assets/c94896cc-f7af-4fea-bf94-765efa500771" />
+
 Remove it again with the matching uninstaller. Add `--purge` to delete the saved locks, pins, and machines too.
 
 ```bash
