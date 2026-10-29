@@ -11,7 +11,7 @@ import (
 	"github.com/pixelwave/grok-manager/internal/app"
 )
 
-var Version = "26.10.29.9"
+var Version = "26.10.29.10"
 
 func version() string {
 	body, err := os.ReadFile("VERSION")
@@ -96,6 +96,7 @@ func main() {
 		}
 	}
 	app.CleanLeftovers()
+	app.HideServerConsole()
 	port := app.LoadPort()
 	server := app.Server{Version: version(), Port: port}
 	stop, err := app.Announce(app.MachineName(), port, version())

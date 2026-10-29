@@ -30,7 +30,11 @@ func InstallService(port int) error {
 		return err
 	}
 	_ = os.Remove(startupFile())
-	if err := registerLogonTask(exe); err != nil {
+	launcher, err := writeHiddenLauncher(exe)
+	if err != nil {
+		return err
+	}
+	if err := registerLogonTask(launcher); err != nil {
 		return err
 	}
 	if err := ensureOnUserPath(filepath.Dir(exe)); err != nil {
@@ -39,14 +43,22 @@ func InstallService(port int) error {
 	return startLogonTask()
 }
 
-func registerLogonTask(exe string) error {
-	exe = strings.ReplaceAll(exe, "'", "''")
+func writeHiddenLauncher(exe string) (string, error) {
+	path := filepath.Join(filepath.Dir(exe), "start-hidden.ps1")
+	body := fmt.Sprintf("$psi = New-Object System.Diagnostics.ProcessStartInfo\r\n$psi.FileName = '%s'\r\n$psi.UseShellExecute = $false\r\n$psi.CreateNoWindow = $true\r\n[void][System.Diagnostics.Process]::Start($psi)\r\n", strings.ReplaceAll(exe, "'", "''"))
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func registerLogonTask(launcher string) error {
 	script := fmt.Sprintf(`
-$action = New-ScheduledTaskAction -Execute '%s'
+$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"%s\"'
 $trigger = New-ScheduledTaskTrigger -AtLogOn
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName 'Grok Manager' -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
-`, exe)
+`, launcher)
 	return powershell(script)
 }
 
@@ -184,6 +196,7 @@ func Uninstall(purge bool) error {
 	_ = os.Remove(startupFile())
 	if exe, err := os.Executable(); err == nil {
 		_ = removeFromUserPath(filepath.Dir(exe))
+		_ = os.Remove(filepath.Join(filepath.Dir(exe), "start-hidden.ps1"))
 	}
 	if purge {
 		_ = os.RemoveAll(ConfigDir())
