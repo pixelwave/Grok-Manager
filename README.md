@@ -23,7 +23,7 @@ A local page for the Grok sessions on one machine, grouped by project folder. Yo
 
 ## Releases
 
-Current version: **26.10.29.10**. A release number is the day it is published, `YY.MM.DD`. Notes are in [CHANGELOG.md](CHANGELOG.md).
+Current version: **26.10.29.11**. A release number is the day it is published, `YY.MM.DD`. Notes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Install
 
@@ -49,7 +49,7 @@ curl -fsSL https://pixelwave.github.io/grok-manager/install.sh | bash -s -- -p 6
 & ([scriptblock]::Create((irm https://pixelwave.github.io/grok-manager/install.ps1))) -p 6969
 ```
 
-Root installs for root’s sessions, at `/usr/local/bin`. Any other account installs for that account’s sessions, at `~/.local/bin`. On Windows the command is added to your user Path. Open a new terminal, then run `grok-manager status`.
+Root installs for root’s sessions, at `/usr/local/bin`. Any other account installs for that account’s sessions, at `~/.local/bin`. On Windows the command is added to your user Path. Open a new terminal, then run `grok-manager status`. After a restart, Windows starts it from Startup apps under the name Grok Manager. Turn that entry off to leave it stopped.
 
 ```bash
 grok-manager up
