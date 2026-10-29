@@ -35,8 +35,7 @@ func StatusText(version string) string {
  v%s
 
  Host      : %s
- IP        : %s
- Port      : %d
+ URL       : %s:%d
 
  * Documentation:  https://github.com/pixelwave/Grok-Manager
 `, version, MachineName(), lanIPv4(), LoadPort())

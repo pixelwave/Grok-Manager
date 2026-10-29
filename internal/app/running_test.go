@@ -23,9 +23,8 @@ func TestStatusText(t *testing.T) {
 		t.Fatal("version block")
 	}
 	host := " Host      : " + MachineName() + "\n"
-	ip := " IP        : " + lanIPv4() + "\n"
-	port := " Port      : 18090\n"
-	block := host + ip + port + "\n * Documentation:  https://github.com/pixelwave/Grok-Manager\n"
+	url := " URL       : " + lanIPv4() + ":18090\n"
+	block := host + url + "\n * Documentation:  https://github.com/pixelwave/Grok-Manager\n"
 	if !strings.HasSuffix(text, block) {
 		t.Fatal("fields")
 	}
@@ -35,8 +34,11 @@ func TestStatusText(t *testing.T) {
 
 	t.Setenv("GROK_MANAGER_PORT", "6969")
 	again := StatusText("26.10.29.2")
-	if !strings.Contains(again, "\n v26.10.29.2\n") || !strings.Contains(again, "\n Port      : 6969\n") {
+	if !strings.Contains(again, "\n v26.10.29.2\n") || !strings.Contains(again, "\n URL       : "+lanIPv4()+":6969\n") {
 		t.Fatal("custom port")
+	}
+	if strings.Contains(again, " IP        :") || strings.Contains(again, " Port      :") {
+		t.Fatal("old address lines")
 	}
 	if !strings.Contains(StatusText("  "), "\n v0\n") {
 		t.Fatal("empty version")

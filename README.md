@@ -33,7 +33,7 @@ The page reads `~/.grok/sessions` on the computer where it runs. Nothing is uplo
 
 ## Releases
 
-Current version: **26.10.29.3**. Notes for each version are in [CHANGELOG.md](CHANGELOG.md).
+Current version: **26.10.29.4**. Notes for each version are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Install
 
@@ -70,7 +70,7 @@ grok-manager status
 grok-manager update
 ```
 
-`status` prints the version, host name, address, and port. `update` installs the latest release and removes the previous binary. The page shows **Update available** when a newer release exists. One click updates that machine.
+`status` prints the version, host name, and URL. `update` installs the latest release and removes the previous binary. The page shows **Update available** when a newer release exists. One click updates that machine.
 
 Remove it again with the matching uninstaller. Add `--purge` to delete the saved locks, pins, and machines too.
 
