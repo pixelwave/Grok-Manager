@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -20,21 +22,53 @@ func startupFile() string {
 }
 
 func InstallService(port int) error {
+	if port <= 0 || port > 65535 {
+		return fmt.Errorf("invalid port")
+	}
 	exe, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(startupFile()), 0o755); err != nil {
-		return err
-	}
-	body := fmt.Sprintf("@echo off\r\nset GROK_MANAGER_PORT=%d\r\nstart \"\" \"%s\"\r\n", port, exe)
-	if err := os.WriteFile(startupFile(), []byte(body), 0o644); err != nil {
+	_ = os.Remove(startupFile())
+	if err := registerLogonTask(exe); err != nil {
 		return err
 	}
 	if err := ensureOnUserPath(filepath.Dir(exe)); err != nil {
 		return err
 	}
-	return StartService()
+	return startLogonTask()
+}
+
+func registerLogonTask(exe string) error {
+	exe = strings.ReplaceAll(exe, "'", "''")
+	script := fmt.Sprintf(`
+$action = New-ScheduledTaskAction -Execute '%s'
+$trigger = New-ScheduledTaskTrigger -AtLogOn
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName 'Grok Manager' -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
+`, exe)
+	return powershell(script)
+}
+
+func startLogonTask() error {
+	return powershell("Start-ScheduledTask -TaskName 'Grok Manager'")
+}
+
+func stopLogonTask() {
+	_ = powershell("Stop-ScheduledTask -TaskName 'Grok Manager' -ErrorAction SilentlyContinue; Disable-ScheduledTask -TaskName 'Grok Manager' -ErrorAction SilentlyContinue | Out-Null")
+}
+
+func removeLogonTask() {
+	_ = powershell("Unregister-ScheduledTask -TaskName 'Grok Manager' -Confirm:$false -ErrorAction SilentlyContinue")
+}
+
+func powershell(script string) error {
+	cmd := exec.Command("powershell", "-NoProfile", "-Command", script)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 func ensureOnUserPath(dir string) error {
@@ -108,34 +142,45 @@ func notifyEnvironment() {
 }
 
 func StartService() error {
+	if err := powershell("Enable-ScheduledTask -TaskName 'Grok Manager' | Out-Null"); err == nil {
+		return startLogonTask()
+	}
 	exe, err := os.Executable()
 	if err != nil {
 		return err
 	}
 	cmd := exec.Command(exe)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("GROK_MANAGER_PORT=%d", LoadPort()))
+	cmd.SysProcAttr = detachedProcess()
 	return cmd.Start()
 }
 
+func detachedProcess() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{CreationFlags: 0x00000008} // DETACHED_PROCESS
+}
+
 func StopService() error {
+	stopLogonTask()
 	_ = exec.Command("taskkill", "/IM", "grok-manager.exe", "/F").Run()
 	return nil
 }
 
 func RestartAfterUpdate() {
 	time.Sleep(400 * time.Millisecond)
-	exe, err := os.Executable()
-	if err != nil {
-		return
+	if startLogonTask() != nil {
+		if exe, err := os.Executable(); err == nil {
+			cmd := exec.Command(exe)
+			cmd.Env = os.Environ()
+			cmd.SysProcAttr = detachedProcess()
+			_ = cmd.Start()
+		}
 	}
-	cmd := exec.Command(exe)
-	cmd.Env = os.Environ()
-	_ = cmd.Start()
 	os.Exit(0)
 }
 
 func Uninstall(purge bool) error {
 	_ = StopService()
+	removeLogonTask()
 	_ = os.Remove(startupFile())
 	if exe, err := os.Executable(); err == nil {
 		_ = removeFromUserPath(filepath.Dir(exe))
