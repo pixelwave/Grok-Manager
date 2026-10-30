@@ -1,17 +1,84 @@
 package app
 
 import (
+	"bufio"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestMain(m *testing.M) {
+	if os.Getenv("GROK_BILLING_FAKE") == "1" {
+		fakeBillingGrok()
+		os.Exit(0)
+	}
 	_ = os.Setenv("GROK_QUOTA", "0")
 	os.Exit(m.Run())
+}
+
+// fakeBillingGrok answers like Grok when the saved login needs a refresh.
+// Initialize waits. A weekly request already waiting in the pipe fails.
+func fakeBillingGrok() {
+	in := bufio.NewReader(os.Stdin)
+	out := bufio.NewWriter(os.Stdout)
+	write := func(message map[string]any) {
+		_ = json.NewEncoder(out).Encode(message)
+		_ = out.Flush()
+	}
+	pipelined := false
+	for {
+		line, err := in.ReadBytes('\n')
+		if err != nil {
+			return
+		}
+		var request struct {
+			ID     int    `json:"id"`
+			Method string `json:"method"`
+		}
+		if json.Unmarshal(line, &request) != nil {
+			continue
+		}
+		if in.Buffered() > 0 {
+			pipelined = true
+		}
+		switch request.Method {
+		case "initialize":
+			time.Sleep(150 * time.Millisecond)
+			write(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": map[string]any{}})
+		case "authenticate":
+			write(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": map[string]any{}})
+		case "_x.ai/billing":
+			if pipelined {
+				write(map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"message": "Internal error"}})
+				return
+			}
+			write(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": map[string]any{"config": map[string]any{
+				"creditUsagePercent": 10,
+				"currentPeriod":      map[string]any{"end": "2026-11-04"},
+			}}})
+			return
+		}
+	}
+}
+
+func TestBillingWaitsForLoginRefresh(t *testing.T) {
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GROK_BIN", exe)
+	t.Setenv("GROK_BILLING_FAKE", "1")
+	quota, err := fetchBilling()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if quota.Percent == nil || *quota.Percent != 10 || quota.Until != "4 Nov" {
+		t.Fatalf("%+v", quota)
+	}
 }
 
 func TestSavedQuotaSkipsRead(t *testing.T) {

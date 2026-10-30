@@ -218,27 +218,50 @@ func fetchBilling() (Quota, error) {
 	}()
 
 	writer := json.NewEncoder(stdin)
-	requests := []struct {
-		method string
-		params any
-	}{
-		{"initialize", map[string]any{"protocolVersion": 1, "clientInfo": map[string]string{"name": "grok-manager", "version": "0"}, "capabilities": map[string]any{}}},
-		{"authenticate", map[string]string{"methodId": "cached_token"}},
-		{"_x.ai/billing", map[string]any{}},
-	}
-	for id, request := range requests {
-		if err := writer.Encode(map[string]any{
-			"jsonrpc": "2.0",
-			"id":      id + 1,
-			"method":  request.method,
-			"params":  request.params,
-		}); err != nil {
-			return Quota{}, err
-		}
-	}
-
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 64*1024), 2*1024*1024)
+	// Grok refreshes an expired saved login during initialize. Billing sent
+	// before that reply uses the old login and comes back as a generic failure.
+	if err := writeRPC(writer, 1, "initialize", map[string]any{
+		"protocolVersion": 1,
+		"clientInfo":      map[string]string{"name": "grok-manager", "version": "0"},
+		"capabilities":    map[string]any{},
+	}); err != nil {
+		return Quota{}, err
+	}
+	if _, err := readRPC(scanner, 1); err != nil {
+		return Quota{}, err
+	}
+	if err := writeRPC(writer, 2, "authenticate", map[string]string{"methodId": "cached_token"}); err != nil {
+		return Quota{}, err
+	}
+	if _, err := readRPC(scanner, 2); err != nil {
+		return Quota{}, err
+	}
+	if err := writeRPC(writer, 3, "_x.ai/billing", map[string]any{}); err != nil {
+		return Quota{}, err
+	}
+	result, err := readRPC(scanner, 3)
+	if err != nil {
+		return Quota{}, err
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(result, &parsed); err != nil {
+		return Quota{}, err
+	}
+	return parseBilling(parsed)
+}
+
+func writeRPC(writer *json.Encoder, id int, method string, params any) error {
+	return writer.Encode(map[string]any{
+		"jsonrpc": "2.0",
+		"id":      id,
+		"method":  method,
+		"params":  params,
+	})
+}
+
+func readRPC(scanner *bufio.Scanner, id int) (json.RawMessage, error) {
 	for scanner.Scan() {
 		var message struct {
 			ID    int `json:"id"`
@@ -247,31 +270,21 @@ func fetchBilling() (Quota, error) {
 			} `json:"error"`
 			Result json.RawMessage `json:"result"`
 		}
-		if err := json.Unmarshal(scanner.Bytes(), &message); err != nil {
-			continue
-		}
-		if message.ID == 2 && message.Error != nil {
-			return Quota{}, errQuotaAuth
-		}
-		if message.ID != 3 {
+		if json.Unmarshal(scanner.Bytes(), &message) != nil || message.ID != id {
 			continue
 		}
 		if message.Error != nil {
-			if strings.Contains(strings.ToLower(message.Error.Message), "auth") {
-				return Quota{}, errQuotaAuth
+			if id == 2 || strings.Contains(strings.ToLower(message.Error.Message), "auth") {
+				return nil, errQuotaAuth
 			}
-			return Quota{}, fmt.Errorf("billing")
+			return nil, fmt.Errorf("billing")
 		}
-		var result map[string]any
-		if err := json.Unmarshal(message.Result, &result); err != nil {
-			return Quota{}, err
-		}
-		return parseBilling(result)
+		return message.Result, nil
 	}
 	if err := scanner.Err(); err != nil {
-		return Quota{}, err
+		return nil, err
 	}
-	return Quota{}, fmt.Errorf("billing")
+	return nil, fmt.Errorf("billing")
 }
 
 func parseBilling(result map[string]any) (Quota, error) {
