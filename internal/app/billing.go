@@ -15,9 +15,10 @@ import (
 )
 
 // Quota is the weekly account bar for the login on this machine.
+// Percent is nil when Grok answered but did not include a usage percentage.
 type Quota struct {
-	Percent float64 `json:"percent"`
-	Until   string  `json:"until,omitempty"`
+	Percent *float64 `json:"percent,omitempty"`
+	Until   string   `json:"until,omitempty"`
 }
 
 var (
@@ -29,6 +30,7 @@ var (
 	quotaRunning bool
 	quotaGen     int
 	quotaOK      bool
+	quotaErr     string
 	quotaValue   Quota
 )
 
@@ -67,6 +69,18 @@ func quotaJSON() any {
 	return quota
 }
 
+func quotaError() string {
+	if os.Getenv("GROK_QUOTA") == "0" {
+		return ""
+	}
+	quotaMu.Lock()
+	defer quotaMu.Unlock()
+	if quotaRunning || !quotaLoaded {
+		return ""
+	}
+	return quotaErr
+}
+
 // ForceQuota reads the weekly quota now and stores it for the next start.
 func ForceQuota() (Quota, bool) {
 	if os.Getenv("GROK_QUOTA") == "0" {
@@ -97,17 +111,28 @@ func storeQuota(gen int, quota Quota, err error) (Quota, bool) {
 		return quotaValue, quotaOK
 	}
 	if err == nil {
+		quotaErr = ""
 		quotaValue = quota
-		quotaOK = true
-		_ = writeFileJSON(quotaPath(), quota)
-		return quotaValue, true
+		quotaOK = quota.Percent != nil || quota.Until != ""
+		if quota.Percent != nil {
+			_ = writeFileJSON(quotaPath(), quota)
+		}
+		return quotaValue, quotaOK
 	}
-	if errors.Is(err, errQuotaAuth) || errors.Is(err, errQuotaMissing) {
-		quotaOK = false
-		quotaValue = Quota{}
+	if quotaOK {
+		return quotaValue, quotaOK
+	}
+	quotaValue = Quota{}
+	if errors.Is(err, errQuotaAuth) {
+		quotaErr = "Grok is not signed in on this machine"
 		_ = os.Remove(quotaPath())
+	} else if errors.Is(err, errQuotaMissing) {
+		quotaErr = "Grok was not found on this machine"
+		_ = os.Remove(quotaPath())
+	} else {
+		quotaErr = "Weekly usage could not be read"
 	}
-	return quotaValue, quotaOK
+	return quotaValue, false
 }
 
 func quotaPath() string { return configFile("GROK_QUOTA_PATH", "quota.json") }
@@ -125,7 +150,7 @@ func readSavedQuota() (Quota, bool) {
 		return Quota{}, false
 	}
 	var quota Quota
-	if json.Unmarshal(body, &quota) != nil || quota.Percent < 0 || quota.Percent > 100 {
+	if json.Unmarshal(body, &quota) != nil || quota.Percent == nil || *quota.Percent < 0 || *quota.Percent > 100 {
 		return Quota{}, false
 	}
 	return quota, true
@@ -254,10 +279,6 @@ func parseBilling(result map[string]any) (Quota, error) {
 	if config == nil {
 		return Quota{}, fmt.Errorf("billing")
 	}
-	percent, ok := asFloat(config["creditUsagePercent"])
-	if !ok {
-		return Quota{}, fmt.Errorf("billing")
-	}
 	until := ""
 	if period, ok := config["currentPeriod"].(map[string]any); ok {
 		until = formatUntil(period["end"])
@@ -265,7 +286,77 @@ func parseBilling(result map[string]any) (Quota, error) {
 	if until == "" {
 		until = formatUntil(config["billingPeriodEnd"])
 	}
-	return Quota{Percent: percent, Until: until}, nil
+	if percent, ok := usagePercent(config); ok {
+		value := percent
+		return Quota{Percent: &value, Until: until}, nil
+	}
+	if until == "" {
+		return Quota{}, fmt.Errorf("billing")
+	}
+	return Quota{Until: until}, nil
+}
+
+func usagePercent(config map[string]any) (float64, bool) {
+	if percent, ok := asFloat(config["creditUsagePercent"]); ok {
+		return clampPercent(percent), true
+	}
+	if percent, ok := productPercent(config["productUsage"]); ok {
+		return clampPercent(percent), true
+	}
+	used, usedOK := centValue(config["used"])
+	limit, limitOK := centValue(config["monthlyLimit"])
+	if usedOK && limitOK && limit > 0 {
+		return clampPercent(float64(used) / float64(limit) * 100), true
+	}
+	return 0, false
+}
+
+func productPercent(value any) (float64, bool) {
+	items, ok := value.([]any)
+	if !ok {
+		return 0, false
+	}
+	var fallback *float64
+	for _, item := range items {
+		entry, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		percent, ok := asFloat(entry["usagePercent"])
+		if !ok {
+			continue
+		}
+		name, _ := entry["product"].(string)
+		if name == "PRODUCT_GROK_BUILD" || name == "GrokBuild" {
+			return percent, true
+		}
+		if fallback == nil {
+			copied := percent
+			fallback = &copied
+		}
+	}
+	if fallback == nil {
+		return 0, false
+	}
+	return *fallback, true
+}
+
+func centValue(value any) (float64, bool) {
+	entry, ok := value.(map[string]any)
+	if !ok {
+		return 0, false
+	}
+	return asFloat(entry["val"])
+}
+
+func clampPercent(value float64) float64 {
+	if value < 0 {
+		return 0
+	}
+	if value > 100 {
+		return 100
+	}
+	return value
 }
 
 func asFloat(value any) (float64, bool) {

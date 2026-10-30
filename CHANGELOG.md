@@ -2,6 +2,10 @@
 
 A release number is the day it is published, `YY.MM.DD`. 28 October 2026 is `26.10.28`. Another release that same day is `26.10.28.2`, then `26.10.28.3`. The next day starts again at three numbers, `26.10.29`.
 
+## 26.10.30.2 — 30 October 2026
+
+- The weekly bar reads Grok replies that report credits used against the allowance, or the Grok Build share, when a single percentage is absent. The refresh button stays available when no reading is saved.
+
 ## 26.10.30 — 30 October 2026
 
 - The header shows this machine's weekly Grok usage. The reading is saved on the machine. Press the refresh button to read it again.

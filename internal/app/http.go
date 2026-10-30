@@ -58,6 +58,7 @@ func (server Server) sessions(w http.ResponseWriter, r *http.Request) {
 		"discovered": BrowsePeers(server.Port),
 		"update":     CheckUpdate(server.Version),
 		"quota":      quotaJSON(),
+		"quotaError": quotaError(),
 	})
 }
 
@@ -68,10 +69,10 @@ func (server Server) quota(w http.ResponseWriter, r *http.Request) {
 	}
 	quota, ok := ForceQuota()
 	if !ok {
-		writeJSON(w, 200, map[string]any{"quota": nil})
+		writeJSON(w, 200, map[string]any{"quota": nil, "quotaError": quotaError()})
 		return
 	}
-	writeJSON(w, 200, map[string]any{"quota": quota})
+	writeJSON(w, 200, map[string]any{"quota": quota, "quotaError": ""})
 }
 
 func (server Server) peers(w http.ResponseWriter, r *http.Request) {
@@ -83,6 +84,7 @@ func (server Server) peers(w http.ResponseWriter, r *http.Request) {
 		"discovered": BrowsePeers(server.Port),
 		"update":     CheckUpdate(server.Version),
 		"quota":      quotaJSON(),
+		"quotaError": quotaError(),
 	})
 }
 

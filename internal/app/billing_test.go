@@ -18,7 +18,8 @@ func TestSavedQuotaSkipsRead(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("GROK_QUOTA", "")
 	t.Setenv("GROK_QUOTA_PATH", filepath.Join(dir, "quota.json"))
-	if err := writeFileJSON(quotaPath(), Quota{Percent: 12, Until: "4 Nov"}); err != nil {
+	saved := 12.0
+	if err := writeFileJSON(quotaPath(), Quota{Percent: &saved, Until: "4 Nov"}); err != nil {
 		t.Fatal(err)
 	}
 	quotaMu.Lock()
@@ -29,7 +30,7 @@ func TestSavedQuotaSkipsRead(t *testing.T) {
 	quotaMu.Unlock()
 
 	quota, ok := CheckQuota()
-	if !ok || quota.Percent != 12 || quota.Until != "4 Nov" {
+	if !ok || quota.Percent == nil || *quota.Percent != 12 || quota.Until != "4 Nov" {
 		t.Fatalf("%+v %v", quota, ok)
 	}
 	quotaMu.Lock()
@@ -70,14 +71,8 @@ func TestParseBilling(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if quota.Percent != 72.4 {
-		t.Fatalf("percent %v", quota.Percent)
-	}
-	if quota.Until == "" {
-		t.Fatal("missing until")
+	if err != nil || quota.Percent == nil || *quota.Percent != 72.4 || quota.Until == "" {
+		t.Fatalf("%+v %v", quota, err)
 	}
 	fallback, err := parseBilling(map[string]any{
 		"config": map[string]any{
@@ -85,10 +80,38 @@ func TestParseBilling(t *testing.T) {
 			"billingPeriodEnd":   "2026-11-04",
 		},
 	})
-	if err != nil || fallback.Until != "4 Nov" {
+	if err != nil || fallback.Percent == nil || *fallback.Percent != 0 || fallback.Until != "4 Nov" {
 		t.Fatalf("%+v %v", fallback, err)
 	}
+	legacy, err := parseBilling(map[string]any{
+		"config": map[string]any{
+			"monthlyLimit":     map[string]any{"val": float64(2000)},
+			"used":             map[string]any{"val": float64(500)},
+			"billingPeriodEnd": "2026-11-04",
+		},
+	})
+	if err != nil || legacy.Percent == nil || *legacy.Percent != 25 {
+		t.Fatalf("%+v %v", legacy, err)
+	}
+	build, err := parseBilling(map[string]any{
+		"config": map[string]any{
+			"productUsage": []any{
+				map[string]any{"product": "PRODUCT_GROK_CHAT", "usagePercent": float64(3)},
+				map[string]any{"product": "PRODUCT_GROK_BUILD", "usagePercent": float64(61.2)},
+			},
+			"billingPeriodEnd": "2026-11-04",
+		},
+	})
+	if err != nil || build.Percent == nil || *build.Percent != 61.2 {
+		t.Fatalf("%+v %v", build, err)
+	}
+	dated, err := parseBilling(map[string]any{
+		"config": map[string]any{"billingPeriodEnd": "2026-11-04"},
+	})
+	if err != nil || dated.Percent != nil || dated.Until != "4 Nov" {
+		t.Fatalf("%+v %v", dated, err)
+	}
 	if _, err := parseBilling(map[string]any{"config": map[string]any{}}); err == nil {
-		t.Fatal("expected missing percent to fail")
+		t.Fatal("expected an empty billing reply to fail")
 	}
 }
