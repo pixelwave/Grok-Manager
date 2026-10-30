@@ -11,7 +11,7 @@ import (
 	"github.com/pixelwave/grok-manager/internal/app"
 )
 
-var Version = "26.10.29.12"
+var Version = "26.10.30"
 
 func isCLI(args []string) bool {
 	if len(args) < 2 {
@@ -113,6 +113,7 @@ func main() {
 	app.CleanLeftovers()
 	app.MigrateStartupApp()
 	app.HideServerConsole()
+	app.WarmQuota()
 	port := app.LoadPort()
 	server := app.Server{Version: version(), Port: port}
 	stop, err := app.Announce(app.MachineName(), port, version())

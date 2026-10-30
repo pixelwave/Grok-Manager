@@ -131,10 +131,58 @@
       }
       button.add-machines svg { display: block; width: 45px; height: 20px; }
       button.add-machines:hover g, button.add-machines:focus-visible g { opacity: 1; }
+      button.quota-refresh {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 20px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        line-height: 0;
+        cursor: pointer;
+        flex: none;
+        transform: translateY(1px);
+      }
+      button.quota-refresh svg { display: block; width: 28px; height: 20px; }
+      button.quota-refresh:hover g, button.quota-refresh:focus-visible g { opacity: 1; }
+      button.quota-refresh:disabled { cursor: wait; }
+      button.quota-refresh.busy .quota-cw { animation: quota-spin 0.8s linear infinite; }
+      @keyframes quota-spin { to { transform: rotate(360deg); } }
       .update-line {
         margin: 0.55rem 0 0;
         font-size: 0.85rem;
         color: var(--accent);
+      }
+      .quota {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin: 0.55rem 0 0;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      .quota-track {
+        width: 7.5rem;
+        height: 0.35rem;
+        border-radius: 999px;
+        background: var(--panel-2);
+        overflow: hidden;
+      }
+      .quota-fill {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: inherit;
+        background: var(--accent);
+        transition: width 220ms ease;
+      }
+      .quota.high .quota-fill { background: var(--danger); }
+      .quota-pct {
+        color: var(--fg);
+        font-variant-numeric: tabular-nums;
       }
       button.update-now {
         margin-left: 0.55rem;
@@ -342,6 +390,8 @@
       @media (prefers-reduced-motion: reduce) {
         section.pinned ul.rows.reordering li.row { transition: none; }
         .version { transition: none; }
+        .quota-fill { transition: none; }
+        button.quota-refresh.busy .quota-cw { animation: none; }
       }
       .where {
         display: inline-flex;
@@ -575,6 +625,13 @@
             <a class="version" href="https://github.com/pixelwave/grok-manager">__VERSION__</a>
           </div>
           <p class="lede">Sessions on this machine: <span class="machine">__HOSTNAME__</span></p>
+          <p class="quota" id="quota" hidden>
+            <button class="quota-refresh" id="quota-refresh" type="button" aria-label="Refresh weekly usage"><svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g opacity="0.3"><path d="M18 18.5V20H10V18.5H18ZM26.5 10C26.5 5.30558 22.6944 1.5 18 1.5H10C5.30558 1.5 1.5 5.30558 1.5 10C1.5 14.6944 5.30558 18.5 10 18.5V20L9.48535 19.9873C4.20167 19.7195 0 15.3502 0 10C0 4.47715 4.47715 0 10 0H18C23.5228 0 28 4.47715 28 10C28 15.3502 23.7983 19.7195 18.5146 19.9873L18 20V18.5C22.6944 18.5 26.5 14.6944 26.5 10Z" fill="white"/><g transform="translate(14 10)"><g class="quota-cw"><g transform="translate(-6 -6) scale(0.5)" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></g></g></g></g></svg></button>
+            <span class="quota-label">Week</span>
+            <span class="quota-track" aria-hidden="true"><span class="quota-fill" id="quota-fill"></span></span>
+            <span class="quota-pct" id="quota-pct"></span>
+            <span class="quota-until" id="quota-until"></span>
+          </p>
           <div class="machine-row">
             <button class="add-machines" id="add-machines" type="button" aria-label="Add machine"><svg width="45" height="20" viewBox="0 0 45 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g opacity="0.3"><path d="M35 18.5V20H10V18.5H35ZM43.5 10C43.5 5.30558 39.6944 1.5 35 1.5H10C5.30558 1.5 1.5 5.30558 1.5 10C1.5 14.6944 5.30558 18.5 10 18.5V20L9.48535 19.9873C4.20167 19.7195 0 15.3502 0 10C0 4.47715 4.47715 4.02661e-08 10 0H35C40.5228 0 45 4.47715 45 10C45 15.3502 40.7983 19.7195 35.5146 19.9873L35 20V18.5C39.6944 18.5 43.5 14.6944 43.5 10Z" fill="white"/><path d="M31.1971 14H28.2397V5.27271H31.2568C32.1233 5.27271 32.8676 5.44742 33.4897 5.79685C34.1147 6.14344 34.5949 6.64202 34.9301 7.29259C35.2653 7.94316 35.4329 8.72157 35.4329 9.62782C35.4329 10.5369 35.2639 11.3182 34.9258 11.9716C34.5906 12.625 34.1062 13.1264 33.4727 13.4758C32.842 13.8253 32.0835 14 31.1971 14ZM29.8207 12.6321H31.1204C31.7284 12.6321 32.2355 12.5213 32.6417 12.2997C33.048 12.0753 33.3534 11.7415 33.5579 11.2983C33.7625 10.8523 33.8647 10.2954 33.8647 9.62782C33.8647 8.96021 33.7625 8.40623 33.5579 7.96589C33.3534 7.52271 33.0508 7.19174 32.6503 6.97299C32.2525 6.7514 31.7582 6.6406 31.1673 6.6406H29.8207V12.6321Z" fill="white"/><path d="M22.5018 14H19.5444V5.27271H22.5615C23.428 5.27271 24.1723 5.44742 24.7944 5.79685C25.4194 6.14344 25.8995 6.64202 26.2348 7.29259C26.57 7.94316 26.7376 8.72157 26.7376 9.62782C26.7376 10.5369 26.5686 11.3182 26.2305 11.9716C25.8953 12.625 25.4109 13.1264 24.7774 13.4758C24.1467 13.8253 23.3882 14 22.5018 14ZM21.1254 12.6321H22.4251C23.0331 12.6321 23.5402 12.5213 23.9464 12.2997C24.3527 12.0753 24.6581 11.7415 24.8626 11.2983C25.0672 10.8523 25.1694 10.2954 25.1694 9.62782C25.1694 8.96021 25.0672 8.40623 24.8626 7.96589C24.6581 7.52271 24.3555 7.19174 23.9549 6.97299C23.5572 6.7514 23.0629 6.6406 22.472 6.6406H21.1254V12.6321Z" fill="white"/><path d="M11.9814 14H10.2939L13.3664 5.27271H15.3181L18.3948 14H16.7073L14.3763 7.06248H14.3082L11.9814 14ZM12.0368 10.5781H16.6391V11.848H12.0368V10.5781Z" fill="white"/></g></svg></button>
             <span id="extra-machines"></span>
@@ -1473,6 +1530,7 @@
         machines = Array.isArray(data.machines) ? data.machines : [];
         discovered = Array.isArray(data.discovered) ? data.discovered : [];
         showUpdate(data.update);
+        showQuota(data.quota);
         renderMachines();
         const known = new Set();
         for (const group of groups) {
@@ -1534,6 +1592,29 @@
         line.hidden = !(update && update.available);
       }
 
+      function showQuota(quota) {
+        const row = document.getElementById("quota");
+        if (!quota || typeof quota.percent !== "number" || !Number.isFinite(quota.percent)) {
+          row.hidden = true;
+          return;
+        }
+        const percent = Math.max(0, Math.min(100, quota.percent));
+        const shown = Math.round(percent);
+        row.hidden = false;
+        row.classList.toggle("high", percent >= 80);
+        document.getElementById("quota-fill").style.width = percent + "%";
+        document.getElementById("quota-pct").textContent = shown + "%";
+        const until = document.getElementById("quota-until");
+        if (typeof quota.until === "string" && quota.until) {
+          until.hidden = false;
+          until.textContent = "until " + quota.until;
+        } else {
+          until.hidden = true;
+          until.textContent = "";
+        }
+        row.setAttribute("aria-label", "Weekly usage " + shown + " percent" + (until.hidden ? "" : ", " + until.textContent));
+      }
+
       function showMachineError(message) {
         machineError.hidden = !message;
         machineError.textContent = message || "";
@@ -1576,6 +1657,20 @@
         if (!result.ok) showError(result.error);
       }
 
+      document.getElementById("quota-refresh").addEventListener("click", async () => {
+        const button = document.getElementById("quota-refresh");
+        button.disabled = true;
+        button.classList.add("busy");
+        try {
+          const response = await fetch("/api/quota", { method: "POST", cache: "no-store" });
+          if (response.ok) {
+            const data = await response.json();
+            showQuota(data.quota);
+          }
+        } catch { /* keep the current bar */ }
+        button.disabled = false;
+        button.classList.remove("busy");
+      });
       document.getElementById("update-now").addEventListener("click", async () => {
         const button = document.getElementById("update-now");
         button.disabled = true;
@@ -1603,6 +1698,7 @@
           const data = await response.json();
           discovered = Array.isArray(data.discovered) ? data.discovered : [];
           showUpdate(data.update);
+          showQuota(data.quota);
           renderMachines();
         } catch { /* keep the current list */ }
       }, 30000);

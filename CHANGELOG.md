@@ -2,6 +2,10 @@
 
 A release number is the day it is published, `YY.MM.DD`. 28 October 2026 is `26.10.28`. Another release that same day is `26.10.28.2`, then `26.10.28.3`. The next day starts again at three numbers, `26.10.29`.
 
+## 26.10.30 — 30 October 2026
+
+- The header shows this machine's weekly Grok usage. The reading is saved on the machine. Press the refresh button to read it again.
+
 ## 26.10.29.12 — 29 October 2026
 
 - On Windows, Startup apps lists Grok Manager. The entry starts the app directly, with no console window.

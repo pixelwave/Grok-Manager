@@ -26,6 +26,7 @@ func (server Server) Handler() http.Handler {
 	mux.HandleFunc("/api/pins", server.pins)
 	mux.HandleFunc("/api/machines", server.machines)
 	mux.HandleFunc("/api/peers", server.peers)
+	mux.HandleFunc("/api/quota", server.quota)
 	mux.HandleFunc("/api/update", server.update)
 	mux.HandleFunc("/", server.page)
 	return mux
@@ -56,7 +57,21 @@ func (server Server) sessions(w http.ResponseWriter, r *http.Request) {
 		"machines":   LoadMachines(),
 		"discovered": BrowsePeers(server.Port),
 		"update":     CheckUpdate(server.Version),
+		"quota":      quotaJSON(),
 	})
+}
+
+func (server Server) quota(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, 404, map[string]any{"error": "Not found"})
+		return
+	}
+	quota, ok := ForceQuota()
+	if !ok {
+		writeJSON(w, 200, map[string]any{"quota": nil})
+		return
+	}
+	writeJSON(w, 200, map[string]any{"quota": quota})
 }
 
 func (server Server) peers(w http.ResponseWriter, r *http.Request) {
@@ -67,6 +82,7 @@ func (server Server) peers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{
 		"discovered": BrowsePeers(server.Port),
 		"update":     CheckUpdate(server.Version),
+		"quota":      quotaJSON(),
 	})
 }
 
